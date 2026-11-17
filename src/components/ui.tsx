@@ -39,6 +39,7 @@ export function Button({
   disabled,
   icon: Icon,
   style,
+  selected,
 }: {
   children: React.ReactNode;
   onPress: () => void;
@@ -46,11 +47,13 @@ export function Button({
   disabled?: boolean;
   icon?: LucideIcon;
   style?: ViewStyle;
+  selected?: boolean;
 }) {
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
+      accessibilityRole={selected === undefined ? "button" : "radio"}
+      accessibilityState={{ disabled: !!disabled, checked: selected }}
+      aria-checked={selected}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -84,8 +87,8 @@ export const s = StyleSheet.create({
     backgroundColor: t.panel,
     borderColor: t.border,
     borderWidth: 1,
-    borderRadius: 18,
-    padding: 22,
+    borderRadius: 24,
+    padding: 20,
   },
   label: {
     color: t.muted,
@@ -95,10 +98,10 @@ export const s = StyleSheet.create({
     textTransform: "uppercase",
   },
   button: {
-    minHeight: 46,
+    minHeight: 50,
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: t.border,
     backgroundColor: t.raised,
@@ -107,11 +110,11 @@ export const s = StyleSheet.create({
     justifyContent: "center",
     gap: 9,
   },
-  buttonText: { color: t.text, fontSize: 13, fontWeight: "600" },
+  buttonText: { color: t.text, fontSize: 14, fontWeight: "600" },
   iconButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: t.raised,
@@ -122,17 +125,17 @@ export const s = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: -0.6,
   },
-  body: { color: t.muted, fontSize: 13, lineHeight: 21 },
+  body: { color: t.muted, fontSize: 14, lineHeight: 22 },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   input: {
     backgroundColor: t.bg,
     color: t.text,
     borderColor: t.border,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 15,
     padding: 16,
     fontFamily: mono,
-    fontSize: 13,
+    fontSize: 15,
     minHeight: 52,
   },
 });

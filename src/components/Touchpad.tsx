@@ -33,7 +33,7 @@ export function Touchpad({
   sensitivity: number;
 }) {
   const [dragging, setDragging] = useState(false);
-  const [position, setPosition] = useState({ x: 50, y: 50 });
+  const [moreControls, setMoreControls] = useState(false);
   const previous = useRef({ x: 0, y: 0, time: 0, distance: 0 });
   const click = async (button: number) => {
     if (!enabled) return;
@@ -54,10 +54,6 @@ export function Touchpad({
         void send(0, 0, dragging ? 1 : 0, -dy / 6);
       else {
         void send(dx * sensitivity, dy * sensitivity, dragging ? 1 : 0);
-        setPosition((p) => ({
-          x: Math.max(8, Math.min(92, p.x + dx / 5)),
-          y: Math.max(8, Math.min(92, p.y + dy / 4)),
-        }));
       }
     },
     [send, sensitivity, dragging],
@@ -90,66 +86,53 @@ export function Touchpad({
     [enabled, onGrant, onMove, onRelease, onTerminate],
   );
   return (
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: 12 }}>
       <View
         {...responder.panHandlers}
-        accessibilityLabel="Touchpad. Drag to move, tap to click, two fingers to scroll. Direction buttons are below."
-        style={[styles.pad, !enabled && { opacity: 0.55 }]}
+        accessibilityLabel="Touchpad. Drag to move, tap to click, two fingers to scroll. Extra controls provide button alternatives."
+        style={styles.pad}
       >
-        <View pointerEvents="none" style={styles.grid}>
-          {Array.from({ length: 12 }, (_, row) => (
-            <View key={row} style={styles.dotRow}>
-              {Array.from({ length: 24 }, (_, col) => (
-                <View key={col} style={styles.dot} />
-              ))}
-            </View>
-          ))}
-        </View>
         <View pointerEvents="none" style={styles.padTop}>
           <Text style={styles.padLabel}>TOUCH SURFACE</Text>
-          <Move color={t.muted} size={14} />
+          <Move size={15} color={t.muted} />
         </View>
         <View pointerEvents="none" style={styles.center}>
           <View style={styles.pointerHalo}>
-            <MousePointer2 size={29} color={t.accent} strokeWidth={1.5} />
+            <MousePointer2 size={30} color={t.accent} strokeWidth={1.5} />
           </View>
           <Text style={styles.padTitle}>
-            {enabled ? "Your desk. Anywhere." : "Ready when you are."}
+            {enabled ? "Make your move." : "A little space to move."}
           </Text>
-          <Text style={s.body}>
+          <Text style={[s.body, { textAlign: "center", fontSize: 12 }]}>
             {enabled
-              ? "Move a finger to take control"
-              : "Connect a device to start controlling"}
+              ? "One finger to move. Two to scroll."
+              : "Connect your computer to begin."}
           </Text>
-        </View>
-        <View
-          pointerEvents="none"
-          style={[
-            styles.cross,
-            { left: `${position.x}%`, top: `${position.y}%` },
-          ]}
-        >
-          <Text style={{ color: "#a9c57d" }}>+</Text>
         </View>
         <View pointerEvents="none" style={styles.padBottom}>
-          <View style={styles.liveDot} />
+          <View
+            style={[
+              styles.liveDot,
+              { backgroundColor: enabled ? t.success : t.muted },
+            ]}
+          />
           <Text style={styles.padLabel}>
-            {enabled ? "INPUT READY" : "WAITING FOR CONNECTION"}
+            {enabled ? "READY FOR INPUT" : "NOT CONNECTED"}
           </Text>
         </View>
       </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
+          style={{ flex: 1 }}
           disabled={!enabled}
           onPress={() => void click(1)}
-          style={{ flex: 1 }}
         >
           Left click
         </Button>
         <Button
+          style={{ flex: 1 }}
           disabled={!enabled}
           onPress={() => void click(2)}
-          style={{ flex: 1 }}
         >
           Right click
         </Button>
@@ -164,68 +147,57 @@ export function Touchpad({
           }}
         />
       </View>
-      <View style={styles.hints}>
-        <Text style={styles.hint}>↖ One finger to move</Text>
-        <Text style={styles.hint}>↕ Two fingers to scroll</Text>
-        <Text style={styles.hint}>· Tap to click</Text>
-      </View>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "center",
-          flexWrap: "wrap",
-          gap: 6,
-        }}
-      >
-        {(
-          [
-            [ArrowLeft, -20, 0, "Move left"],
-            [ArrowUp, 0, -20, "Move up"],
-            [ArrowDown, 0, 20, "Move down"],
-            [ArrowRight, 20, 0, "Move right"],
-          ] as const
-        ).map(([Icon, x, y, label]) => (
-          <IconButton
-            key={label}
-            icon={Icon}
-            label={label}
-            disabled={!enabled}
-            onPress={() => void send(x, y)}
-          />
-        ))}
-        <Button disabled={!enabled} onPress={() => void send(0, 0, 0, 3)}>
-          Scroll ↑
-        </Button>
-        <Button disabled={!enabled} onPress={() => void send(0, 0, 0, -3)}>
-          Scroll ↓
-        </Button>
-      </View>
+      <Button onPress={() => setMoreControls(!moreControls)}>
+        {moreControls ? "Hide extra controls" : "More controls"}
+      </Button>
+      {moreControls && (
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 8,
+            justifyContent: "center",
+          }}
+        >
+          {(
+            [
+              [ArrowLeft, -20, 0, "Move left"],
+              [ArrowUp, 0, -20, "Move up"],
+              [ArrowDown, 0, 20, "Move down"],
+              [ArrowRight, 20, 0, "Move right"],
+            ] as const
+          ).map(([Icon, x, y, label]) => (
+            <IconButton
+              key={label}
+              icon={Icon}
+              label={label}
+              disabled={!enabled}
+              onPress={() => void send(x, y)}
+            />
+          ))}
+          <Button disabled={!enabled} onPress={() => void send(0, 0, 0, 3)}>
+            Scroll ↑
+          </Button>
+          <Button disabled={!enabled} onPress={() => void send(0, 0, 0, -3)}>
+            Scroll ↓
+          </Button>
+        </View>
+      )}
     </View>
   );
 }
 const styles = StyleSheet.create({
   pad: {
-    minHeight: 310,
-    backgroundColor: "#131713",
+    minHeight: 250,
+    backgroundColor: "#101722",
     borderWidth: 1,
-    borderColor: "#394334",
-    borderRadius: 14,
+    borderColor: "#2B3A52",
+    borderRadius: 22,
     overflow: "hidden",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     touchAction: "none",
   } as any,
-  grid: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 14,
-    justifyContent: "space-between",
-  },
-  dotRow: { flexDirection: "row", justifyContent: "space-between" },
-  dot: { height: 2, width: 2, borderRadius: 1, backgroundColor: "#333D30" },
   padTop: {
     position: "absolute",
     top: 18,
@@ -237,36 +209,28 @@ const styles = StyleSheet.create({
   padLabel: {
     fontFamily: mono,
     fontSize: 9,
-    letterSpacing: 1.3,
-    color: "#8D9B85",
+    letterSpacing: 1.4,
+    color: "#A1AEC3",
   },
-  center: { alignItems: "center", gap: 9 },
+  center: { alignItems: "center", gap: 10, padding: 20 },
   pointerHalo: {
-    backgroundColor: "#232E1D",
-    padding: 17,
-    borderRadius: 22,
-    marginBottom: 7,
+    backgroundColor: "#24324E",
+    padding: 16,
+    borderRadius: 23,
+    marginBottom: 2,
   },
   padTitle: {
     color: t.text,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "500",
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
   },
-  cross: { position: "absolute", opacity: 0.5 },
   padBottom: {
     position: "absolute",
     bottom: 18,
     flexDirection: "row",
-    alignItems: "center",
     gap: 7,
+    alignItems: "center",
   },
-  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: t.accent },
-  hints: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 16,
-  },
-  hint: { color: t.muted, fontSize: 11 },
+  liveDot: { height: 5, width: 5, borderRadius: 3 },
 });

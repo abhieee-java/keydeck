@@ -18,10 +18,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "io.github.abhieeejava.keydeck",
-      "permissions": [
-        "BLUETOOTH_CONNECT",
-        "BLUETOOTH_ADVERTISE"
-      ],
+      "permissions": ["BLUETOOTH_CONNECT", "BLUETOOTH_ADVERTISE"],
       "versionCode": 1
     },
     "web": {

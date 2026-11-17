@@ -8,6 +8,7 @@ import android.os.Build
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.util.concurrent.Executors
+import kotlinx.coroutines.delay
 
 /** Android's HID device profile; the computer sees a composite keyboard + mouse. */
 @SuppressLint("MissingPermission")
@@ -94,6 +95,13 @@ class BluetoothHidModule : Module() {
     connectingDevice = null
     host = null
   }
+  private fun suspendSession() {
+    disconnect()
+    registered = false
+    pending = false
+    hid?.unregisterApp()
+    state("idle")
+  }
   override fun definition() = ModuleDefinition {
     Name("BluetoothHid")
     Events("onConnection")
@@ -130,8 +138,9 @@ class BluetoothHidModule : Module() {
       check(hid?.connect(device) == true) { "Connection could not start. Check the computer’s Bluetooth settings." }
     }
     AsyncFunction("disconnect") { disconnect() }
+    AsyncFunction("suspendSession") { suspendSession() }
     AsyncFunction("sendKey") { modifier: Int, codes: List<Int> -> key(modifier, codes) }
-    AsyncFunction("sendText") { reports: List<Map<String, Any>> ->
+    AsyncFunction("sendText").SuspendBody { reports: List<Map<String, Any>> ->
       require(reports.size <= 2001) { "Text is too long." }
       val current = generation
       for (report in reports) {
@@ -139,14 +148,14 @@ class BluetoothHidModule : Module() {
         val modifier = (report["modifier"] as Number).toInt()
         val codes = (report["keys"] as List<*>).map { (it as Number).toInt() }
         key(modifier, codes)
-        Thread.sleep(8)
+        delay(8)
       }
     }
     AsyncFunction("sendMouse") { x: Int, y: Int, buttons: Int, wheel: Int ->
       synchronized(reportLock) { send(2, byteArrayOf((buttons and 7).toByte(), x.coerceIn(-127,127).toByte(), y.coerceIn(-127,127).toByte(), wheel.coerceIn(-127,127).toByte())) }
     }
     AsyncFunction("release") { generation++; releaseReports() }
-    OnActivityEntersBackground { generation++; runCatching { releaseReports() } }
+    OnActivityEntersBackground { generation++; runCatching { if (host != null) suspendSession() else releaseReports() } }
     OnDestroy {
       runCatching { disconnect() }
       runCatching { hid?.unregisterApp() }

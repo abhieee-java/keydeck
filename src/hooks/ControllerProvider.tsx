@@ -21,6 +21,7 @@ import {
   nativeHid,
 } from "../core/transport";
 import { shortcut } from "../core/hid";
+import { usePreferences } from "./usePreferences";
 export type Tab = "Overview" | "Touchpad" | "Keyboard" | "Console" | "Settings";
 const routes = {
   Overview: "/",
@@ -57,12 +58,30 @@ function useController() {
   const [showDevices, setShowDevices] = useState(false);
   const [draft, setDraft] = useState("");
   const [command, setCommand] = useState("");
-  const [sensitivity, setSensitivity] = useState(1.5);
-  const [host, setHost] = useState<"Windows" | "macOS" | "Linux">("Windows");
+  const {
+    preferences,
+    update: updatePreferences,
+    warning: preferenceWarning,
+  } = usePreferences();
+  const { sensitivity, host, pointerRate } = preferences;
+  const setSensitivity = (value: number) =>
+    updatePreferences({ sensitivity: value });
+  const setHost = (value: "Windows" | "macOS" | "Linux") =>
+    updatePreferences({ host: value });
+  const setPointerRate = (value: 30 | 60) =>
+    updatePreferences({ pointerRate: value });
   const [history, setHistory] = useState<string[]>([]);
-  const log = (message: string) =>
-    setActivity((a) => [message, ...a].slice(0, 8));
-  const transport = useMemo(() => createTransport(preview, log), [preview]);
+  const log = useCallback(
+    (message: string) => setActivity((a) => [message, ...a].slice(0, 8)),
+    [],
+  );
+  const transport = useMemo(
+    () => createTransport(preview, log),
+    [preview, log],
+  );
+  useEffect(() => {
+    transport.setPointerRate(pointerRate);
+  }, [transport, pointerRate]);
   const connected = connection.status === "connected";
   const setPreview = useCallback((value: boolean) => {
     setConnection({ status: "idle" });
@@ -84,10 +103,15 @@ function useController() {
   }, [tab, showDevices, transport]);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
-      if (state !== "active") void transport.release().catch(() => {});
+      if (state === "background" && connected) {
+        void transport.suspend().catch(() => {});
+        setNotice(
+          "Session paused in the background. Reconnect when you are ready.",
+        );
+      } else if (state === "inactive") void transport.release().catch(() => {});
     });
     return () => sub.remove();
-  }, [transport]);
+  }, [transport, connected]);
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       if (showDevices) {
@@ -112,14 +136,14 @@ function useController() {
     }, 15000);
     return () => clearTimeout(timer);
   }, [connection.status, transport]);
-  async function run(action: () => Promise<void>) {
+  const run = useCallback(async (action: () => Promise<void>) => {
     setError("");
     try {
       await action();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }
+  }, []);
   async function openDevices() {
     setShowDevices(true);
     setBusy(true);
@@ -137,8 +161,11 @@ function useController() {
     setBusy(false);
   }
   const key = (names: string[]) => run(() => transport.key(shortcut(names)));
-  const mouse = (x: number, y: number, buttons = 0, wheel = 0) =>
-    run(() => transport.mouse(x, y, buttons, wheel));
+  const mouse = useCallback(
+    (x: number, y: number, buttons = 0, wheel = 0) =>
+      run(() => transport.mouse(x, y, buttons, wheel)),
+    [run, transport],
+  );
   const mainModifier = host === "macOS" ? "Meta" : "Ctrl";
   const shortcuts = [
     { label: "Copy", keys: [mainModifier, "c"], icon: Copy },
@@ -180,6 +207,9 @@ function useController() {
     setCommand,
     sensitivity,
     setSensitivity,
+    pointerRate,
+    setPointerRate,
+    preferenceWarning,
     host,
     setHost,
     history,

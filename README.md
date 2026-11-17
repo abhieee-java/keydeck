@@ -11,13 +11,13 @@
 
 <p align="center"><a href="https://github.com/abhieee-java/keydeck/releases"><b>↓ APK releases</b></a> · <a href="docs/INSTALL.md">Install & pair</a> · <a href="#what-you-can-do">Features</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 
-> **Early preview.** The first signed APK is being prepared. Source and browser-preview tests are available; physical Bluetooth compatibility is not yet certified. Only install an APK attached to a release—GitHub's “Source code” downloads are not apps.
+> **Early preview.** The first signed APK is being prepared. Source and browser-preview tests are available; physical Bluetooth compatibility is not yet device-tested. Only install an APK attached to a release—GitHub's “Source code” downloads are not apps.
 
 ## From download to control
 
 1. On your phone, open **[Releases](https://github.com/abhieee-java/keydeck/releases)** and select a release with an APK attachment.
 2. Download **`keydeck-vX.Y.Z.apk`**, open it, and allow installation from your browser when Android asks.
-3. Open Keydeck, allow **Nearby devices**, and choose **Connect device → Make discoverable**.
+3. Open Keydeck, allow **Nearby devices**, and choose **Connect → Make discoverable**.
 4. Add the phone from your computer's Bluetooth settings. Return to Keydeck, refresh the device list, and connect.
 
 No account, subscription, desktop agent, or shared Wi-Fi network is needed for keyboard and mouse input. Initial pairing requires access to the computer's Bluetooth settings. Keep Keydeck open while controlling it.
@@ -44,9 +44,17 @@ Keydeck uses Android's native **Bluetooth HID device** profile. The computer rec
 - **Command input is not a remote shell.** Keydeck cannot read terminal output or show your computer screen over HID.
 - This is foreground control, not a guaranteed replacement for input during initial pairing, boot/BIOS, or every protected OS dialog.
 
+## Designed for everyday use
+
+A focused dark interface, large touch targets, a dedicated pairing sheet, and keyboard-accessible alternative pointer controls. Pointer movement is batched on demand at 30 Hz by default, with an optional 60 Hz mode. There is no idle polling, wake lock, or background control service. Connected sessions pause when the app goes into the background. Actual battery consumption depends on your phone, screen brightness, and Bluetooth hardware; measurements are still pending.
+
+<p align="center"><img src="docs/preview.png" alt="Keydeck phone interface: connection card, touchpad, and bottom navigation" width="320" /></p>
+
+[Device validation and battery testing →](docs/VALIDATION.md)
+
 ## Privacy by design
 
-No backend, analytics, or account flow is implemented. Bluetooth input goes to the paired computer. Drafts, preferences, and command history currently live in memory and reset when the app process restarts. [Permissions and privacy →](docs/PRIVACY.md)
+No backend, analytics, or account flow is implemented. Bluetooth input goes to the paired computer. Only host and pointer preferences are saved locally. Drafts and command history reset when the app process restarts. [Permissions and privacy →](docs/PRIVACY.md)
 
 ## Run the project
 
@@ -75,7 +83,8 @@ See [architecture](docs/ARCHITECTURE.md), [contributing](CONTRIBUTING.md), and [
 
 - [ ] Verify Bluetooth behavior across real phones and host operating systems
 - [ ] Improve the phone-first interface and accessibility with device testing
-- [ ] Add keyboard layouts and persisted preferences
+- [x] Persist host and pointer preferences locally
+- [ ] Add keyboard layouts
 - [ ] Design an authenticated desktop companion for terminal output and screen features
 
 Found a device that works—or a reproducible problem? [Open a report](https://github.com/abhieee-java/keydeck/issues/new/choose) with your phone, Android version, and computer OS. A star helps other people discover the project.

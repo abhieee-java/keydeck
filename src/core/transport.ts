@@ -1,6 +1,7 @@
 import { Platform, PermissionsAndroid } from "react-native";
 import { requireOptionalNativeModule } from "expo";
-import { clampAxis, encodeText, KeyReport } from "./hid";
+import { encodeText, KeyReport } from "./hid";
+import { PointerQueue } from "./pointer";
 
 export type Device = { id: string; name: string };
 export type Connection = {
@@ -18,6 +19,8 @@ export type HidTransport = {
   text(value: string, enter?: boolean): Promise<void>;
   mouse(x: number, y: number, buttons?: number, wheel?: number): Promise<void>;
   release(): Promise<void>;
+  suspend(): Promise<void>;
+  setPointerRate(rate: 30 | 60): void;
   subscribe(fn: (state: Connection) => void): () => void;
   dispose(): void;
 };
@@ -50,6 +53,30 @@ export function createTransport(
     queue = result.catch(() => {});
     return result;
   };
+  const pointer = new PointerQueue(
+    async (report) => {
+      demand();
+      if (!preview)
+        await nativeHid.sendMouse(
+          report.x,
+          report.y,
+          report.buttons,
+          report.wheel,
+        );
+    },
+    (error) => {
+      connected = false;
+      generation++;
+      if (!preview && nativeHid) nativeHid.suspendSession().catch(() => {});
+      listener({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Pointer input stopped. Reconnect to continue.",
+      });
+    },
+  );
   const api: HidTransport = {
     async initialize() {
       if (preview) {
@@ -72,7 +99,10 @@ export function createTransport(
       }
       subscription?.remove();
       subscription = nativeHid.addListener("onConnection", (s: Connection) => {
-        if (s.status !== "connected") generation++;
+        if (s.status !== "connected") {
+          generation++;
+          pointer.cancel();
+        }
         connected = s.status === "connected";
         listener(s);
       });
@@ -88,6 +118,8 @@ export function createTransport(
         log("Preview device is ready to connect.");
         return;
       }
+      if (!nativeHid)
+        throw new Error("Bluetooth needs a custom Android build.");
       await nativeHid.makeDiscoverable();
     },
     async connect(id) {
@@ -110,6 +142,8 @@ export function createTransport(
     },
     async disconnect() {
       generation++;
+      pointer.cancel();
+      await pointer.settled();
       connected = false;
       if (!preview && nativeHid) await nativeHid.disconnect();
       listener({ status: "ready" });
@@ -133,17 +167,24 @@ export function createTransport(
     },
     async mouse(x, y, buttons = 0, wheel = 0) {
       demand();
-      if (!preview)
-        await nativeHid.sendMouse(
-          clampAxis(x),
-          clampAxis(y),
-          buttons,
-          clampAxis(wheel),
-        );
+      await pointer.push(x, y, buttons, wheel);
+    },
+    setPointerRate(rate) {
+      pointer.setRate(rate);
     },
     async release() {
       generation++;
+      pointer.cancel();
+      await pointer.settled();
       if (connected && !preview && nativeHid) await nativeHid.release();
+    },
+    async suspend() {
+      generation++;
+      pointer.cancel();
+      await pointer.settled();
+      connected = false;
+      if (!preview && nativeHid) await nativeHid.suspendSession();
+      listener({ status: "idle" });
     },
     subscribe(fn) {
       cancelled = false;
@@ -153,10 +194,15 @@ export function createTransport(
       };
     },
     dispose() {
+      pointer.cancel();
       cancelled = true;
       connected = false;
       subscription?.remove();
-      if (!preview && nativeHid) nativeHid.disconnect().catch(() => {});
+      if (!preview && nativeHid)
+        pointer
+          .settled()
+          .then(() => nativeHid.suspendSession())
+          .catch(() => {});
     },
   };
   return api;
