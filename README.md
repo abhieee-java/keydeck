@@ -3,8 +3,8 @@
 <p align="center">
   <a href="https://github.com/abhieee-java/keydeck/actions/workflows/ci.yml"><img src="https://github.com/abhieee-java/keydeck/actions/workflows/ci.yml/badge.svg" alt="Quality checks" /></a>
   <a href="https://github.com/abhieee-java/keydeck/actions/workflows/android.yml"><img src="https://github.com/abhieee-java/keydeck/actions/workflows/android.yml/badge.svg" alt="Android build" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-d2f98a?labelColor=192218" alt="MIT license" /></a>
-  <img src="https://img.shields.io/badge/Android-9%2B-d2f98a?labelColor=192218" alt="Android 9 or newer" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-BDCEFF?labelColor=14181F" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/Android-9%2B-BDCEFF?labelColor=14181F" alt="Android 9 or newer" />
 </p>
 
 <p align="center"><b>A Bluetooth keyboard and mouse that fits in your pocket.</b><br />Turn an Android phone into a touchpad, keyboard, and command input device for your computer.</p>
