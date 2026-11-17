@@ -152,7 +152,7 @@ class BluetoothHidModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("BluetoothHid")
     Events("onConnection")
-    AsyncFunction("initialize").SuspendBody {
+    AsyncFunction("initialize").SuspendBody<Map<String, Any>> { ->
       check(Build.VERSION.SDK_INT >= 28) { "Android 9 or newer is required." }
       val context = appContext.reactContext ?: throw IllegalStateException("Android context unavailable.")
       adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
