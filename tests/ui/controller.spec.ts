@@ -77,9 +77,7 @@ test("route changes preserve a connected session and text draft", async ({
   );
 });
 
-test("input preferences survive a restart without saving text drafts", async ({
-  page,
-}) => {
+test("input preferences survive a restart", async ({ page }) => {
   await page.goto("/settings");
   await page.getByRole("radio", { name: "macOS", exact: true }).click();
   await page

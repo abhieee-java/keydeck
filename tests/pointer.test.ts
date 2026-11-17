@@ -111,3 +111,16 @@ test("large pending movement retains its button state before a click", async () 
   assert.equal(h.reports.at(-1)?.buttons, 1);
   assert.equal(h.reports.at(-1)?.x, 0);
 });
+
+test("queue overload requests recovery so a dropped release cannot leave a held button", async () => {
+  const h = harness();
+  const pending: Promise<unknown>[] = [];
+  for (let i = 0; i < 33; i++) {
+    pending.push(h.queue.push(0, 0, i % 2 === 0 ? 1 : 0).catch(() => {}));
+  }
+  await Promise.all(pending);
+  assert.equal(h.errors.length, 1);
+  assert.match(String(h.errors[0]), /Input queue is busy/);
+  assert.equal(h.reports.length, 0);
+  assert.equal(h.timers.size, 0);
+});

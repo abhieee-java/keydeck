@@ -67,9 +67,9 @@ export class PointerQueue {
   private enqueue(report: PointerReport) {
     if (this.pending >= 32) {
       this.cancel();
-      return Promise.reject(
-        new Error("Input queue is busy. Reconnect and try again."),
-      );
+      const error = new Error("Input queue is busy. Reconnect and try again.");
+      this.onError(error);
+      return Promise.reject(error);
     }
     const epoch = this.epoch;
     this.pending++;
