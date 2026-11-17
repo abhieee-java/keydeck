@@ -22,6 +22,7 @@ export function Touchpad({
   enabled,
   send,
   sensitivity,
+  fullscreen,
 }: {
   enabled: boolean;
   send: (
@@ -31,6 +32,7 @@ export function Touchpad({
     wheel?: number,
   ) => Promise<void>;
   sensitivity: number;
+  fullscreen?: boolean;
 }) {
   const [dragging, setDragging] = useState(false);
   const [moreControls, setMoreControls] = useState(false);
@@ -86,24 +88,45 @@ export function Touchpad({
     [enabled, onGrant, onMove, onRelease, onTerminate],
   );
   return (
-    <View style={{ gap: 12 }}>
+    <View style={[{ gap: 12 }, fullscreen && { flex: 1 }]}>
       <View
         {...responder.panHandlers}
         accessibilityLabel="Touchpad. Drag to move, tap to click, two fingers to scroll. Extra controls provide button alternatives."
-        style={styles.pad}
+        style={[styles.pad, fullscreen && styles.padFullscreen]}
       >
         <View pointerEvents="none" style={styles.padTop}>
-          <Text style={styles.padLabel}>TOUCH SURFACE</Text>
+          <Text style={styles.padLabel}>
+            {fullscreen ? "FULLSCREEN TOUCH SURFACE" : "TOUCH SURFACE"}
+          </Text>
           <Move size={15} color={t.muted} />
         </View>
         <View pointerEvents="none" style={styles.center}>
-          <View style={styles.pointerHalo}>
-            <MousePointer2 size={30} color={t.accent} strokeWidth={1.5} />
+          <View
+            style={[
+              styles.pointerHalo,
+              fullscreen && { padding: 22, borderRadius: 30 },
+            ]}
+          >
+            <MousePointer2
+              size={fullscreen ? 40 : 30}
+              color={t.accent}
+              strokeWidth={1.5}
+            />
           </View>
-          <Text style={styles.padTitle}>
+          <Text
+            style={[
+              styles.padTitle,
+              fullscreen && { fontSize: 23, letterSpacing: -0.6 },
+            ]}
+          >
             {enabled ? "Make your move." : "A little space to move."}
           </Text>
-          <Text style={[s.body, { textAlign: "center", fontSize: 12 }]}>
+          <Text
+            style={[
+              s.body,
+              { textAlign: "center", fontSize: fullscreen ? 13 : 12 },
+            ]}
+          >
             {enabled
               ? "One finger to move. Two to scroll."
               : "Connect your computer to begin."}
@@ -123,14 +146,14 @@ export function Touchpad({
       </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
-          style={{ flex: 1 }}
+          style={[{ flex: 1 }, fullscreen && { paddingVertical: 16 }]}
           disabled={!enabled}
           onPress={() => void click(1)}
         >
           Left click
         </Button>
         <Button
-          style={{ flex: 1 }}
+          style={[{ flex: 1 }, fullscreen && { paddingVertical: 16 }]}
           disabled={!enabled}
           onPress={() => void click(2)}
         >
@@ -147,10 +170,12 @@ export function Touchpad({
           }}
         />
       </View>
-      <Button onPress={() => setMoreControls(!moreControls)}>
-        {moreControls ? "Hide extra controls" : "More controls"}
-      </Button>
-      {moreControls && (
+      {!fullscreen && (
+        <Button onPress={() => setMoreControls(!moreControls)}>
+          {moreControls ? "Hide extra controls" : "More controls"}
+        </Button>
+      )}
+      {!fullscreen && moreControls && (
         <View
           style={{
             flexDirection: "row",
@@ -183,6 +208,31 @@ export function Touchpad({
           </Button>
         </View>
       )}
+      {fullscreen && (
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Button
+            style={{ flex: 1 }}
+            disabled={!enabled}
+            onPress={() => void send(0, 0, 0, 3)}
+          >
+            Scroll ↑
+          </Button>
+          <Button
+            style={{ flex: 1 }}
+            disabled={!enabled}
+            onPress={() => void send(0, 0, 0, -3)}
+          >
+            Scroll ↓
+          </Button>
+        </View>
+      )}
     </View>
   );
 }
@@ -198,6 +248,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     touchAction: "none",
   } as any,
+  padFullscreen: {
+    flex: 1,
+    minHeight: 480,
+    backgroundColor: "#0C121D",
+    borderColor: "#30425E",
+    borderWidth: 1.5,
+    borderRadius: 26,
+  },
   padTop: {
     position: "absolute",
     top: 18,

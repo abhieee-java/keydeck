@@ -1,5 +1,12 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
+import {
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 import { theme as t, mono } from "../theme";
 import type { LucideIcon } from "lucide-react-native";
 export function IconButton({
@@ -46,7 +53,7 @@ export function Button({
   primary?: boolean;
   disabled?: boolean;
   icon?: LucideIcon;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   selected?: boolean;
 }) {
   return (
@@ -78,7 +85,7 @@ export function Panel({
   style,
 }: {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }) {
   return <View style={[s.panel, style]}>{children}</View>;
 }

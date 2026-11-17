@@ -34,11 +34,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "test:ui": "playwright test",
-    "build:web": "expo export --platform web",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\" *.json *.ts",
     "lint": "expo lint"
   },

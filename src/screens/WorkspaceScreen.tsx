@@ -24,6 +24,7 @@ import {
   Laptop,
   Leaf,
   Maximize2,
+  Minimize2,
   MousePointer2,
   Send,
   Settings2,
@@ -32,17 +33,19 @@ import {
   Terminal,
   Unplug,
   X,
+  Gamepad2,
 } from "lucide-react-native";
 import { Tab, useSession } from "../hooks/ControllerProvider";
 import { Button, IconButton, Label, Panel, s } from "../components/ui";
 import { Touchpad } from "../components/Touchpad";
 import { ShortcutComposer } from "../components/ShortcutComposer";
 import { ConnectionSheet } from "../components/ConnectionSheet";
+import { GamingConsole } from "../components/GamingConsole";
 import { theme as t, mono } from "../theme";
 const destinations = [
   { name: "Overview", label: "Control", icon: MousePointer2 },
   { name: "Keyboard", label: "Keyboard", icon: Keyboard },
-  { name: "Console", label: "Console", icon: Terminal },
+  { name: "Console", label: "Console", icon: Gamepad2 },
   { name: "Settings", label: "Settings", icon: Settings2 },
 ] as const;
 
@@ -199,22 +202,49 @@ function TextComposer({ compact = false }: { compact?: boolean }) {
 function ControlScreen() {
   const { connected, mouse, sensitivity, tab, setTab, medium, pointerRate } =
     useSession();
+  const isFullscreen = tab === "Touchpad";
   return (
-    <View style={[styles.columns, !medium && { flexDirection: "column" }]}>
-      <Panel style={{ flex: 1 }}>
+    <View
+      style={[
+        styles.columns,
+        !medium && { flexDirection: "column" },
+        isFullscreen && { flex: 1 },
+      ]}
+    >
+      <Panel
+        style={[
+          { flex: 1 },
+          isFullscreen && {
+            minHeight: 520,
+            padding: 14,
+            backgroundColor: "#0D131D",
+            borderColor: "#2B3C56",
+          },
+        ]}
+      >
         <View
-          style={[s.row, { justifyContent: "space-between", marginBottom: 16 }]}
+          style={[
+            s.row,
+            {
+              justifyContent: "space-between",
+              marginBottom: isFullscreen ? 10 : 16,
+            },
+          ]}
         >
           <View>
-            <Text style={styles.sectionTitle}>Touchpad</Text>
-            <Text style={[styles.caption, { marginTop: 5 }]}>
-              A natural extension of your hand.
+            <Text style={styles.sectionTitle}>
+              {isFullscreen ? "Fullscreen Touchpad" : "Touchpad"}
+            </Text>
+            <Text style={[styles.caption, { marginTop: 4 }]}>
+              {isFullscreen
+                ? "Expansive glass surface. Tap minimize to restore."
+                : "A natural extension of your hand."}
             </Text>
           </View>
           <IconButton
-            icon={Maximize2}
-            label="Open full touchpad"
-            onPress={() => setTab(tab === "Touchpad" ? "Overview" : "Touchpad")}
+            icon={isFullscreen ? Minimize2 : Maximize2}
+            label={isFullscreen ? "Exit full touchpad" : "Open full touchpad"}
+            onPress={() => setTab(isFullscreen ? "Overview" : "Touchpad")}
           />
         </View>
         <Touchpad
@@ -222,6 +252,7 @@ function ControlScreen() {
           enabled={connected}
           send={mouse}
           sensitivity={sensitivity}
+          fullscreen={isFullscreen}
         />
       </Panel>
       {tab === "Overview" && (
@@ -641,14 +672,14 @@ export default function WorkspaceScreen() {
       : "Your desk. Within reach.",
     Touchpad: "Make room to move.",
     Keyboard: "Every word, every key.",
-    Console: "A command away.",
+    Console: "Play without limits.",
     Settings: "Make yourself at home.",
   };
   const subtitles: Record<Tab, string> = {
     Overview: "A little less hardware. A lot more freedom.",
     Touchpad: "A touch surface that goes wherever you do.",
     Keyboard: "Compose here. Send to the app on your computer.",
-    Console: "Your computer’s terminal, with input from your phone.",
+    Console: "Gaming console controller with D-pad, triggers and action buttons.",
     Settings: "Small adjustments. A more natural connection.",
   };
   return (
@@ -747,20 +778,23 @@ export default function WorkspaceScreen() {
             contentContainerStyle={[
               styles.content,
               !medium && { padding: 20, gap: 20 },
+              tab === "Touchpad" && { flexGrow: 1, padding: 12, gap: 12 },
             ]}
           >
-            <View style={styles.headingBlock}>
-              <Text
-                accessibilityRole="header"
-                style={[
-                  styles.heading,
-                  !medium && { fontSize: 30, lineHeight: 37 },
-                ]}
-              >
-                {titles[tab]}
-              </Text>
-              <Text style={[s.body, { marginTop: 9 }]}>{subtitles[tab]}</Text>
-            </View>
+            {tab !== "Console" && tab !== "Touchpad" && (
+              <View style={styles.headingBlock}>
+                <Text
+                  accessibilityRole="header"
+                  style={[
+                    styles.heading,
+                    !medium && { fontSize: 30, lineHeight: 37 },
+                  ]}
+                >
+                  {titles[tab]}
+                </Text>
+                <Text style={[s.body, { marginTop: 9 }]}>{subtitles[tab]}</Text>
+              </View>
+            )}
             {!!error && !showDevices && (
               <View accessibilityRole="alert" style={styles.error}>
                 <Text style={{ color: t.error, lineHeight: 22, flex: 1 }}>
@@ -786,40 +820,42 @@ export default function WorkspaceScreen() {
                 />
               </View>
             )}
-            <SessionCard />
+            {tab !== "Console" && tab !== "Touchpad" && <SessionCard />}
             {(tab === "Overview" || tab === "Touchpad") && <ControlScreen />}
             {tab === "Keyboard" && <KeyboardScreen />}
-            {tab === "Console" && <ConsoleScreen />}
+            {tab === "Console" && <GamingConsole />}
             {tab === "Settings" && <SettingsScreen />}
             {tab === "Overview" && (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Open command workspace"
+                accessibilityLabel="Open gaming console"
                 onPress={() => setTab("Console")}
                 style={styles.consoleLink}
               >
                 <View style={styles.consoleIcon}>
-                  <Terminal size={22} color={t.accent} />
+                  <Gamepad2 size={22} color={t.accent} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.sectionTitle}>A command away.</Text>
+                  <Text style={styles.sectionTitle}>Game console ready.</Text>
                   <Text style={[styles.caption, { marginTop: 6 }]}>
-                    Open your command workspace
+                    Open full gamepad controller
                   </Text>
                 </View>
                 <ArrowUpRight size={21} color={t.accent} />
               </Pressable>
             )}
-            <View style={styles.footer}>
-              <Text style={styles.caption}>
-                {connected
-                  ? "Your session is ready."
-                  : "Connect once. Make yourself comfortable."}
-              </Text>
-              <Text style={[styles.caption, { fontSize: 11 }]}>
-                KEYDECK / ANDROID
-              </Text>
-            </View>
+            {tab !== "Console" && tab !== "Touchpad" && (
+              <View style={styles.footer}>
+                <Text style={styles.caption}>
+                  {connected
+                    ? "Your session is ready."
+                    : "Connect once. Make yourself comfortable."}
+                </Text>
+                <Text style={[styles.caption, { fontSize: 11 }]}>
+                  KEYDECK / ANDROID
+                </Text>
+              </View>
+            )}
           </ScrollView>
           {!wide && (
             <View style={styles.bottomNav}>{destinations.map(nav)}</View>

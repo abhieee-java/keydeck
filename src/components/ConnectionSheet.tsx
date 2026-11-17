@@ -127,7 +127,11 @@ export function ConnectionSheet() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>{device.name}</Text>
                   <Text style={[s.body, { fontSize: 12 }]}>
-                    {preview ? "Sample computer" : "Paired over Bluetooth"}
+                    {preview
+                      ? "Sample computer"
+                      : device.isComputer
+                        ? "Paired computer (Recommended)"
+                        : "Paired over Bluetooth"}
                   </Text>
                 </View>
                 <Button

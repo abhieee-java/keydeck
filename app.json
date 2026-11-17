@@ -19,14 +19,15 @@
       "package": "io.github.abhieeejava.keydeck",
       "permissions": [
         "BLUETOOTH_CONNECT",
-        "BLUETOOTH_ADVERTISE"
+        "BLUETOOTH_ADVERTISE",
+        "BLUETOOTH_SCAN",
+        "VIBRATE"
       ],
-      "versionCode": 2,
+      "versionCode": 4,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.SYSTEM_ALERT_WINDOW",
-        "android.permission.VIBRATE"
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
     "web": {

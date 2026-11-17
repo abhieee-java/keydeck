@@ -10,7 +10,7 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import java.util.concurrent.Executors
 import kotlinx.coroutines.delay
 
-/** Android's HID device profile; the computer sees a composite keyboard + mouse. */
+/** Android's HID device profile; composite keyboard + mouse + gamepad controller. */
 @SuppressLint("MissingPermission")
 class BluetoothHidModule : Module() {
   private var adapter: BluetoothAdapter? = null
@@ -25,10 +25,12 @@ class BluetoothHidModule : Module() {
   private val executor = Executors.newSingleThreadExecutor()
   private val reportLock = Any()
   @Volatile private var generation = 0
+
   @Synchronized private fun state(status: String, device: BluetoothDevice? = null, message: String? = null) {
     val event = snapshot(status, device, message)
     sendEvent("onConnection", event)
   }
+
   @Synchronized private fun snapshot(
     status: String = if (host != null) "connected" else if (connectingDevice != null) "connecting" else if (registered) "ready" else "idle",
     device: BluetoothDevice? = host ?: connectingDevice,
@@ -39,43 +41,59 @@ class BluetoothHidModule : Module() {
     message?.let { event["message"] = it }
     return event
   }
+
   @Synchronized private fun reconcile(): Map<String, Any> {
     val actual = hid?.connectedDevices?.firstOrNull()
-    if (actual != null) { host = actual; reconnectDevice = actual; connectingDevice = null }
-    else if (host != null) { generation++; host = null }
+    if (actual != null) {
+      host = actual
+      reconnectDevice = actual
+      connectingDevice = null
+    } else if (host != null) {
+      val isConnected = runCatching { hid?.getConnectionState(host) == BluetoothProfile.STATE_CONNECTED }.getOrDefault(false)
+      if (!isConnected) {
+        generation++
+        host = null
+      }
+    }
     return snapshot()
   }
+
   private val callback = object : BluetoothHidDevice.Callback() {
     override fun onAppStatusChanged(pluggedDevice: BluetoothDevice?, isRegistered: Boolean) = synchronized<Unit>(this@BluetoothHidModule) {
       registered = isRegistered
       pending = false
       if (!isRegistered) {
-        generation++; host = null; connectingDevice = null
+        generation++
+        host = null
+        connectingDevice = null
         state("idle")
       } else {
         registrationError = null
-        // A registration callback may arrive AFTER a connected callback.
-        // Preserve the active host, and recover connections made in Android Settings.
         val actual = hid?.connectedDevices?.firstOrNull()
-        if (actual != null) { host = actual; reconnectDevice = actual; connectingDevice = null }
-        if (host == null && connectingDevice == null) {
-          reconnectDevice?.let { device ->
-            if (hid?.connect(device) == true) connectingDevice = device
-          }
+        if (actual != null) {
+          host = actual
+          reconnectDevice = actual
+          connectingDevice = null
         }
         state(if (host != null) "connected" else if (connectingDevice != null) "connecting" else "ready", host ?: connectingDevice)
       }
     }
+
     override fun onConnectionStateChanged(device: BluetoothDevice, newState: Int) = synchronized<Unit>(this@BluetoothHidModule) {
       when (newState) {
         BluetoothProfile.STATE_CONNECTED -> {
-          connectingDevice = null; host = device; reconnectDevice = device; state("connected", device)
+          connectingDevice = null
+          host = device
+          reconnectDevice = device
+          state("connected", device)
         }
         BluetoothProfile.STATE_CONNECTING -> {
-          if (host == null) { connectingDevice = device; state("connecting", device) }
+          if (host == null) {
+            connectingDevice = device
+            state("connecting", device)
+          }
         }
         BluetoothProfile.STATE_DISCONNECTED -> {
-          // A delayed disconnect for a different host must not clear the active one.
           if (host?.address == device.address || connectingDevice?.address == device.address) {
             generation++
             if (host?.address == device.address) host = null
@@ -85,55 +103,115 @@ class BluetoothHidModule : Module() {
         }
       }
     }
+
     override fun onGetReport(device: BluetoothDevice, type: Byte, id: Byte, bufferSize: Int) {
-      val size = if (id.toInt() == 1) 8 else if (id.toInt() == 2) 4 else 0
-      if (size > 0 && type == BluetoothHidDevice.REPORT_TYPE_INPUT)
-        hid?.replyReport(device, type, id, ByteArray(size))
-      else hid?.reportError(device, BluetoothHidDevice.ERROR_RSP_UNSUPPORTED_REQ)
+      if (type == BluetoothHidDevice.REPORT_TYPE_OUTPUT && id.toInt() == 1) {
+        hid?.replyReport(device, type, id, ByteArray(1))
+        return
+      }
+      val size = when (id.toInt()) {
+        1 -> 8
+        2 -> 4
+        3 -> 7
+        0 -> 8
+        else -> 0
+      }
+      if (size > 0 && type == BluetoothHidDevice.REPORT_TYPE_INPUT) {
+        val repId = if (id.toInt() == 0) 1.toByte() else id
+        hid?.replyReport(device, type, repId, ByteArray(size))
+      } else {
+        hid?.reportError(device, BluetoothHidDevice.ERROR_RSP_UNSUPPORTED_REQ)
+      }
     }
+
     override fun onSetReport(device: BluetoothDevice, type: Byte, id: Byte, data: ByteArray) {
-      // Keyboard LEDs are accepted but not rendered in this foundation.
-      hid?.reportError(device, if (id.toInt() == 1) BluetoothHidDevice.ERROR_RSP_SUCCESS else BluetoothHidDevice.ERROR_RSP_UNSUPPORTED_REQ)
+      // Host SET_REPORT: Acknowledge with SUCCESS to maintain connection stability.
+      hid?.reportError(device, BluetoothHidDevice.ERROR_RSP_SUCCESS)
     }
+
+    override fun onSetProtocol(device: BluetoothDevice, protocol: Byte) {
+      // Host SET_PROTOCOL: Default Android callback returns ERROR_RSP_UNSUPPORTED_REQ which breaks Windows.
+      // Acknowledge with SUCCESS so host proceeds to report exchange.
+      hid?.reportError(device, BluetoothHidDevice.ERROR_RSP_SUCCESS)
+    }
+
+    override fun onInterruptData(device: BluetoothDevice, reportId: Byte, data: ByteArray) {
+      // Host interrupt OUT data (e.g. rumble or LED outputs) acknowledged.
+    }
+
     override fun onVirtualCableUnplug(device: BluetoothDevice) = synchronized<Unit>(this@BluetoothHidModule) {
-      if (host?.address == device.address) { generation++; host = null; connectingDevice = null; reconnectDevice = null; state("ready") }
+      if (host?.address == device.address) {
+        generation++
+        host = null
+        connectingDevice = null
+        reconnectDevice = null
+        state("ready")
+      }
     }
   }
+
   private val serviceListener = object : BluetoothProfile.ServiceListener {
     override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
       hid = proxy as BluetoothHidDevice
       register()
     }
+
     override fun onServiceDisconnected(profile: Int) {
-      generation++; host = null; connectingDevice = null; hid = null; registered = false; pending = false
+      generation++
+      host = null
+      connectingDevice = null
+      hid = null
+      registered = false
+      pending = false
       state("idle", message = "Bluetooth service disconnected. Reconnect to continue.")
     }
   }
+
   private fun register() {
-    val settings = BluetoothHidDeviceAppSdpSettings("Keydeck", "Phone keyboard and mouse", "Keydeck", BluetoothHidDevice.SUBCLASS1_COMBO, descriptor)
+    val settings = BluetoothHidDeviceAppSdpSettings(
+      "Keydeck",
+      "Keydeck Gamepad, Keyboard and Mouse",
+      "Keydeck",
+      BluetoothHidDevice.SUBCLASS1_COMBO,
+      descriptor
+    )
     if (hid?.registerApp(settings, null, null, executor, callback) != true) {
       pending = false
       registrationError = "HID registration failed. Close other Bluetooth controller apps and retry."
       state("error", message = registrationError)
     }
   }
+
   private fun requireHost(): BluetoothDevice = host ?: throw IllegalStateException("No computer connected.")
+
   private fun send(id: Int, bytes: ByteArray) {
     if (hid?.sendReport(requireHost(), id, bytes) != true) throw IllegalStateException("Bluetooth input failed. Reconnect and retry.")
   }
+
   private fun releaseReports() {
     val device = host ?: return
-    synchronized(reportLock) { hid?.sendReport(device, 1, ByteArray(8)); hid?.sendReport(device, 2, ByteArray(4)) }
+    synchronized(reportLock) {
+      hid?.sendReport(device, 1, ByteArray(8))
+      hid?.sendReport(device, 2, ByteArray(4))
+      hid?.sendReport(device, 3, ByteArray(7))
+    }
   }
+
   private fun key(modifier: Int, codes: List<Int>) {
     require(codes.size <= 6) { "At most six simultaneous keys are supported." }
     val report = ByteArray(8)
     report[0] = modifier.toByte()
     codes.forEachIndexed { i, code -> report[i + 2] = code.toByte() }
     synchronized(reportLock) {
-      try { send(1, report); Thread.sleep(12) } finally { if (host != null) send(1, ByteArray(8)) }
+      try {
+        send(1, report)
+        Thread.sleep(12)
+      } finally {
+        if (host != null) send(1, ByteArray(8))
+      }
     }
   }
+
   @Synchronized private fun disconnect() {
     reconnectDevice = null
     generation++
@@ -142,6 +220,7 @@ class BluetoothHidModule : Module() {
     connectingDevice = null
     host = null
   }
+
   private fun suspendSession() {
     disconnect()
     registered = false
@@ -149,9 +228,11 @@ class BluetoothHidModule : Module() {
     hid?.unregisterApp()
     state("idle")
   }
+
   override fun definition() = ModuleDefinition {
     Name("BluetoothHid")
     Events("onConnection")
+
     AsyncFunction("initialize").SuspendBody<Map<String, Any>> { ->
       check(Build.VERSION.SDK_INT >= 28) { "Android 9 or newer is required." }
       val context = appContext.reactContext ?: throw IllegalStateException("Android context unavailable.")
@@ -168,7 +249,6 @@ class BluetoothHidModule : Module() {
           }
         }
       }
-      // Wait for the Android callback, not merely for getProfileProxy to return.
       val deadline = android.os.SystemClock.elapsedRealtime() + 10000
       while (!registered && pending && android.os.SystemClock.elapsedRealtime() < deadline) delay(50)
       if (!registered) {
@@ -177,17 +257,27 @@ class BluetoothHidModule : Module() {
       }
       reconcile()
     }
+
     AsyncFunction("getConnectionState") { reconcile() }
+
     AsyncFunction("getDevices") {
-      val devices: List<Map<String, String>> = adapter?.bondedDevices?.map { device ->
-        mapOf("id" to device.address, "name" to (device.name ?: "Bluetooth device"))
-      } ?: emptyList<Map<String, String>>()
-      devices
+      val devices: List<Map<String, Any>> = adapter?.bondedDevices?.map { device ->
+        val majorClass = runCatching { device.bluetoothClass?.majorDeviceClass ?: 0 }.getOrDefault(0)
+        val isComputer = majorClass == 0x0100 || (device.name?.contains(Regex("pc|laptop|desktop|mac|surface|deck|tower|computer|abhie", RegexOption.IGNORE_CASE)) == true)
+        mapOf(
+          "id" to device.address,
+          "name" to (device.name ?: "Bluetooth device"),
+          "isComputer" to isComputer
+        )
+      } ?: emptyList<Map<String, Any>>()
+      devices.sortedByDescending { (it["isComputer"] as? Boolean) == true }
     }
+
     AsyncFunction("makeDiscoverable") {
       val activity = appContext.currentActivity ?: throw IllegalStateException("Open the app before pairing.")
       activity.startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 120))
     }
+
     AsyncFunction("connect") { address: String ->
       synchronized(this@BluetoothHidModule) {
         reconcile()
@@ -207,9 +297,24 @@ class BluetoothHidModule : Module() {
         snapshot()
       }
     }
-    AsyncFunction("disconnect") { disconnect(); snapshot() }
+
+    AsyncFunction("disconnect") {
+      disconnect()
+      snapshot()
+    }
+
     AsyncFunction("suspendSession") { suspendSession() }
+
     AsyncFunction("sendKey") { modifier: Int, codes: List<Int> -> key(modifier, codes) }
+
+    AsyncFunction("sendKeyboardReport") { modifier: Int, codes: List<Int> ->
+      require(codes.size <= 6) { "At most six simultaneous keys are supported." }
+      val report = ByteArray(8)
+      report[0] = modifier.toByte()
+      codes.forEachIndexed { i, code -> report[i + 2] = code.toByte() }
+      synchronized(reportLock) { send(1, report) }
+    }
+
     AsyncFunction("sendText").SuspendBody { reports: List<Map<String, Any>> ->
       require(reports.size <= 2001) { "Text is too long." }
       val current = generation
@@ -221,13 +326,40 @@ class BluetoothHidModule : Module() {
         delay(8)
       }
     }
+
     AsyncFunction("sendMouse") { x: Int, y: Int, buttons: Int, wheel: Int ->
-      synchronized(reportLock) { send(2, byteArrayOf((buttons and 7).toByte(), x.coerceIn(-127,127).toByte(), y.coerceIn(-127,127).toByte(), wheel.coerceIn(-127,127).toByte())) }
+      synchronized(reportLock) {
+        send(2, byteArrayOf(
+          (buttons and 7).toByte(),
+          x.coerceIn(-127, 127).toByte(),
+          y.coerceIn(-127, 127).toByte(),
+          wheel.coerceIn(-127, 127).toByte()
+        ))
+      }
     }
-    AsyncFunction("release") { generation++; releaseReports() }
-    // Pairing/permission dialogs can pause the activity. Release input, not the HID session.
-    // Android itself unregisters HID when the app truly leaves the foreground.
-    OnActivityEntersBackground { generation++; runCatching { releaseReports() } }
+
+    AsyncFunction("sendGamepad") { buttons: Int, leftX: Int, leftY: Int, rightX: Int, rightY: Int, dpad: Int ->
+      val report = ByteArray(7)
+      report[0] = (buttons and 0xFF).toByte()
+      report[1] = ((buttons shr 8) and 0xFF).toByte()
+      report[2] = leftX.coerceIn(-127, 127).toByte()
+      report[3] = leftY.coerceIn(-127, 127).toByte()
+      report[4] = rightX.coerceIn(-127, 127).toByte()
+      report[5] = rightY.coerceIn(-127, 127).toByte()
+      report[6] = (dpad and 0x0F).toByte()
+      synchronized(reportLock) { send(3, report) }
+    }
+
+    AsyncFunction("release") {
+      generation++
+      releaseReports()
+    }
+
+    OnActivityEntersBackground {
+      generation++
+      runCatching { releaseReports() }
+    }
+
     OnDestroy {
       runCatching { disconnect() }
       runCatching { hid?.unregisterApp() }
@@ -235,20 +367,65 @@ class BluetoothHidModule : Module() {
       executor.shutdown()
     }
   }
+
   companion object {
-    // Report 1: boot-style 6-key keyboard + LED output; report 2: 3-button relative mouse + wheel.
+    // Composite HID:
+    // Report 1: 6-key keyboard + LED output (8 bytes input, 1 byte output)
+    // Report 2: 3-button relative mouse + wheel (4 bytes input)
+    // Report 3: Gamepad with 16 buttons, 4 analog axes (LX, LY, RX, RY), 8-way Hat Switch (7 bytes input)
     private val descriptor = intArrayOf(
+      // --- Report 1: Keyboard ---
       0x05,0x01, 0x09,0x06, 0xA1,0x01, 0x85,0x01,
       0x05,0x07, 0x19,0xE0, 0x29,0xE7, 0x15,0x00, 0x25,0x01, 0x75,0x01, 0x95,0x08, 0x81,0x02,
       0x95,0x01, 0x75,0x08, 0x81,0x01,
       0x95,0x05, 0x75,0x01, 0x05,0x08, 0x19,0x01, 0x29,0x05, 0x91,0x02,
       0x95,0x01, 0x75,0x03, 0x91,0x01,
       0x95,0x06, 0x75,0x08, 0x15,0x00, 0x25,0x65, 0x05,0x07, 0x19,0x00, 0x29,0x65, 0x81,0x00, 0xC0,
+
+      // --- Report 2: Mouse ---
       0x05,0x01, 0x09,0x02, 0xA1,0x01, 0x85,0x02, 0x09,0x01, 0xA1,0x00,
       0x05,0x09, 0x19,0x01, 0x29,0x03, 0x15,0x00, 0x25,0x01, 0x95,0x03, 0x75,0x01, 0x81,0x02,
       0x95,0x01, 0x75,0x05, 0x81,0x01,
       0x05,0x01, 0x09,0x30, 0x09,0x31, 0x09,0x38, 0x15,0x81, 0x25,0x7F, 0x75,0x08, 0x95,0x03, 0x81,0x06,
-      0xC0,0xC0
+      0xC0,0xC0,
+
+      // --- Report 3: Gamepad ---
+      0x05,0x01, // Usage Page (Generic Desktop)
+      0x09,0x05, // Usage (Game Pad)
+      0xA1,0x01, // Collection (Application)
+      0x85,0x03, //   Report ID (3)
+      0x05,0x09, //   Usage Page (Button)
+      0x19,0x01, //   Usage Minimum (Button 1)
+      0x29,0x10, //   Usage Maximum (Button 16)
+      0x15,0x00, //   Logical Minimum (0)
+      0x25,0x01, //   Logical Maximum (1)
+      0x75,0x01, //   Report Size (1)
+      0x95,0x10, //   Report Count (16)
+      0x81,0x02, //   Input (Data, Variable, Absolute) - 16 Buttons (2 bytes)
+      0x05,0x01, //   Usage Page (Generic Desktop)
+      0x09,0x30, //   Usage (X) - Left Stick X
+      0x09,0x31, //   Usage (Y) - Left Stick Y
+      0x09,0x32, //   Usage (Z) - Right Stick X
+      0x09,0x35, //   Usage (Rz) - Right Stick Y
+      0x15,0x81, //   Logical Minimum (-127)
+      0x25,0x7F, //   Logical Maximum (127)
+      0x75,0x08, //   Report Size (8)
+      0x95,0x04, //   Report Count (4)
+      0x81,0x02, //   Input (Data, Variable, Absolute) - 4 Axes (4 bytes)
+      0x05,0x01, //   Usage Page (Generic Desktop)
+      0x09,0x39, //   Usage (Hat switch)
+      0x15,0x01, //   Logical Minimum (1)
+      0x25,0x08, //   Logical Maximum (8)
+      0x35,0x00, //   Physical Minimum (0)
+      0x46,0x3B,0x01, // Physical Maximum (315)
+      0x65,0x14, //   Unit (English Rotation: deg)
+      0x75,0x04, //   Report Size (4)
+      0x95,0x01, //   Report Count (1)
+      0x81,0x42, //   Input (Data, Variable, Absolute, Null) - 8 directions (4 bits)
+      0x75,0x04, //   Report Size (4)
+      0x95,0x01, //   Report Count (1)
+      0x81,0x01, //   Input (Constant) - Padding (4 bits)
+      0xC0       // End Collection
     ).map { it.toByte() }.toByteArray()
   }
 }

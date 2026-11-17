@@ -1,12 +1,20 @@
 import { encodeText, KeyReport } from "./hid";
 import { PointerQueue } from "./pointer";
 
-export type Device = { id: string; name: string };
+export type Device = { id: string; name: string; isComputer?: boolean };
 export type Connection = {
   status: "idle" | "ready" | "connecting" | "connected" | "paused" | "error";
   revision?: number;
   device?: Device;
   message?: string;
+};
+export type GamepadReport = {
+  buttons: number;
+  leftX?: number;
+  leftY?: number;
+  rightX?: number;
+  rightY?: number;
+  dpad?: number;
 };
 export type HidTransport = {
   initialize(): Promise<void>;
@@ -15,8 +23,10 @@ export type HidTransport = {
   disconnect(): Promise<void>;
   discoverable(): Promise<void>;
   key(report: KeyReport): Promise<void>;
+  keyboardReport(modifier: number, keys: number[]): Promise<void>;
   text(value: string, enter?: boolean): Promise<void>;
   mouse(x: number, y: number, buttons?: number, wheel?: number): Promise<void>;
+  gamepad(report: GamepadReport): Promise<void>;
   release(): Promise<void>;
   suspend(): Promise<void>;
   resume(): Promise<void>;
@@ -34,12 +44,21 @@ export type NativeHid = {
   release(): Promise<void>;
   suspendSession(): Promise<void>;
   sendKey(modifier: number, keys: number[]): Promise<void>;
+  sendKeyboardReport(modifier: number, keys: number[]): Promise<void>;
   sendText(reports: KeyReport[]): Promise<void>;
   sendMouse(
     x: number,
     y: number,
     buttons: number,
     wheel: number,
+  ): Promise<void>;
+  sendGamepad(
+    buttons: number,
+    leftX: number,
+    leftY: number,
+    rightX: number,
+    rightY: number,
+    dpad: number,
   ): Promise<void>;
   addListener(
     name: string,
@@ -199,6 +218,13 @@ export function createTransportCore(
         log(`Key report · ${report.keys.join(", ")}`);
       });
     },
+    keyboardReport(modifier, keys) {
+      const validKeys = (keys ?? []).filter((code) => code > 0).slice(0, 6);
+      return enqueue(async () => {
+        if (!preview) await nativeHid!.sendKeyboardReport(modifier, validKeys);
+        log(`KeyReport · mod: ${modifier} keys: [${validKeys.join(", ")}]`);
+      });
+    },
     text(value, enter = false) {
       // Validate the entire message before sending any part of it.
       const reports = encodeText(value);
@@ -213,6 +239,27 @@ export function createTransportCore(
     async mouse(x, y, buttons = 0, wheel = 0) {
       demand();
       await pointer.push(x, y, buttons, wheel);
+    },
+    gamepad(report) {
+      const buttons = report.buttons ?? 0;
+      const leftX = report.leftX ?? 0;
+      const leftY = report.leftY ?? 0;
+      const rightX = report.rightX ?? 0;
+      const rightY = report.rightY ?? 0;
+      const dpad = report.dpad ?? 0;
+      return enqueue(async () => {
+        if (!preview) {
+          await nativeHid!.sendGamepad(
+            buttons,
+            leftX,
+            leftY,
+            rightX,
+            rightY,
+            dpad,
+          );
+        }
+        log(`Gamepad · buttons: 0x${buttons.toString(16)} dpad: ${dpad}`);
+      });
     },
     setPointerRate(rate) {
       pointer.setRate(rate);

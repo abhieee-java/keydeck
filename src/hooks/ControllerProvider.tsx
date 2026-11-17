@@ -108,6 +108,7 @@ function useController() {
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") {
+        setNotice((prev) => (prev.includes("background") ? "" : prev));
         void transport
           .resume()
           .catch((e) => setError(e instanceof Error ? e.message : String(e)));
@@ -116,8 +117,10 @@ function useController() {
         setNotice("Input paused while the app is in the background.");
       } else void transport.release().catch(() => {});
     });
-    // Recover an already-connected Android HID host after JS mounts/reloads.
-    void transport.resume().catch(() => {});
+    // Auto-initialize Bluetooth HID on startup so phone is registered and ready immediately
+    void transport.initialize().catch(() => {
+      void transport.resume().catch(() => {});
+    });
     return () => sub.remove();
   }, [transport]);
   useEffect(() => {

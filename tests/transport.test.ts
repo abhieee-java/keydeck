@@ -32,10 +32,16 @@ function harness() {
     sendKey: async () => {
       sent++;
     },
+    sendKeyboardReport: async () => {
+      sent++;
+    },
     sendText: async () => {
       sent++;
     },
     sendMouse: async () => {
+      sent++;
+    },
+    sendGamepad: async () => {
       sent++;
     },
     addListener: (_, fn) => {
@@ -145,4 +151,24 @@ test("connect waits for registration and stays connecting until Android confirms
   await assert.rejects(h.transport.text("a"), /Connect a computer/);
   h.emit(active);
   await h.transport.text("a");
+});
+test("gamepad input transmits report when connected and rejects when disconnected", async () => {
+  const h = harness();
+  await assert.rejects(
+    h.transport.gamepad({ buttons: 1, dpad: 0 }),
+    /Connect a computer/,
+  );
+  h.emit(active);
+  await h.transport.gamepad({ buttons: 1, dpad: 0, leftX: 0, leftY: -127 });
+  assert.equal(h.counts().sent, 1);
+});
+test("keyboardReport transmits held keys when connected and rejects when disconnected", async () => {
+  const h = harness();
+  await assert.rejects(
+    h.transport.keyboardReport(0, [26]),
+    /Connect a computer/,
+  );
+  h.emit(active);
+  await h.transport.keyboardReport(2, [26, 7]);
+  assert.equal(h.counts().sent, 1);
 });
