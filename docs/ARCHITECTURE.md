@@ -18,6 +18,8 @@ HidTransport
 - `src/hooks/ControllerProvider.tsx`: connection state and actions across screens.
 - `src/components/`: replaceable controls, including touchpad and shortcut composer.
 - `src/core/hid.ts`: pure USB HID usage mapping and ASCII validation.
+- `src/core/pointer.ts`: demand-driven pointer scheduler with bounded movement and ordered button transitions.
+- `src/hooks/usePreferences.ts`: validated local preferences; typed content is never persisted.
 - `src/core/transport.ts`: preview/native boundary, serialized text/key input, cancellation generation.
 - `modules/bluetooth-hid/`: local Kotlin Expo module, composite keyboard/mouse descriptor, lifecycle cleanup.
 - `src/core/console.ts`: contract for a future authenticated bidirectional companion. No companion is implemented.

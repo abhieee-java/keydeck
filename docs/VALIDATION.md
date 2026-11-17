@@ -24,3 +24,7 @@ Implementation currently avoids idle polling, perpetual animation, wake locks, a
 ## Current qualification
 
 Physical-device Bluetooth, accessibility, and battery results have not yet been recorded. Releases remain previews until this gate is completed.
+
+## Dependency audit
+
+The current production dependency audit reports no high or critical findings. A moderate glob amplification denial-of-service advisory (GHSA-g3hv-75wg-m249) remains in `minimatch` through Expo’s `@expo/fingerprint` build tooling. Keydeck does not expose glob patterns as app input. Track the upstream SDK dependency fix; do not apply the suggested force downgrade to Expo 52. Re-run the audit before each release.

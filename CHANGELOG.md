@@ -8,4 +8,8 @@
 - Local browser preview mode and automated tests
 - GitHub build checks, APK release signing workflow, installation and contributor documentation
 
-Hardware compatibility remains pending. UI refinement and bidirectional console support are planned separately.
+- Refined dark mobile interface, pairing sheet, launcher identity, and accessible alternative pointer controls
+- Demand-driven 30/60 Hz pointer batching, ordered button transitions, cancellable text, and background suspension
+- Locally persisted host and pointer preferences without persisting drafts
+
+Hardware compatibility and battery measurements remain pending. Bidirectional console support requires a future companion.
