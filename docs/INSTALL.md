@@ -42,7 +42,7 @@ Install a newer release APK over the existing app. The package ID and signing ce
 | Nearby devices denied | Allow it in Android Settings → Apps → Keydeck → Permissions, then retry. |
 | No paired devices | Pair from the computer's Bluetooth settings, return to Keydeck, then refresh. |
 | HID registration unavailable | Close other Bluetooth controller apps. Your phone's firmware may not support the HID device role. |
-| Connection stops after switching apps | Keydeck pauses connected sessions in the background. Keep Keydeck open, then reconnect. |
+| Connection stops after switching apps | Keydeck pauses input in the background and refreshes the actual HID connection on return. If Android dropped the connection, use Connect and retry. |
 | Wrong punctuation | Set the computer's keyboard layout to US. Current text encoding supports ASCII only. |
 | Part of a draft was typed | A radio interruption can stop a send halfway. Check the computer before retrying; text delivery is not atomic. |
 | No terminal output on the phone | Expected: Bluetooth HID sends input only. A future companion is needed for output and screen viewing. |

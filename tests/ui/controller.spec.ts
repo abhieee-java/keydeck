@@ -131,13 +131,22 @@ test("backgrounding pauses the session and prevents further input", async ({
     });
     document.dispatchEvent(new Event("visibilitychange"));
   });
-  await expect(page.getByText("Not connected", { exact: true })).toBeVisible();
+  await expect(page.getByText("Paused", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Left click", exact: true }),
   ).toBeDisabled();
   await expect(
-    page.getByText(
-      "Session paused in the background. Reconnect when you are ready.",
-    ),
+    page.getByText("Input paused while the app is in the background."),
   ).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.getByText(/Simulated ·/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Left click", exact: true }),
+  ).toBeEnabled();
 });

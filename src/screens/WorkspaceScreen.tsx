@@ -77,7 +77,11 @@ function SessionCard() {
           <Text style={styles.caption}>
             {connected
               ? `${preview ? "Simulated" : "Connected"} · ${host}`
-              : "Not connected"}
+              : connection.status === "paused"
+                ? "Paused"
+                : connection.status === "connecting"
+                  ? "Connecting…"
+                  : "Not connected"}
           </Text>
         </View>
       </View>
@@ -589,6 +593,7 @@ export default function WorkspaceScreen() {
     setTab,
     preview,
     connected,
+    connection,
     error,
     setError,
     notice,
@@ -704,16 +709,36 @@ export default function WorkspaceScreen() {
               <View
                 style={[
                   styles.dot,
-                  { backgroundColor: preview ? "#D7BF8D" : t.success },
+                  {
+                    backgroundColor: preview
+                      ? "#D7BF8D"
+                      : connected
+                        ? t.success
+                        : t.muted,
+                  },
                 ]}
               />
               <Text
                 style={[
                   styles.pillText,
-                  { color: preview ? "#E8CFA0" : t.success },
+                  {
+                    color: preview
+                      ? "#E8CFA0"
+                      : connected
+                        ? t.success
+                        : t.muted,
+                  },
                 ]}
               >
-                {preview ? "Preview" : "Bluetooth"}
+                {preview
+                  ? "Preview"
+                  : connected
+                    ? "Connected"
+                    : connection.status === "connecting"
+                      ? "Connecting…"
+                      : connection.status === "paused"
+                        ? "Paused"
+                        : "Not connected"}
               </Text>
             </View>
           </View>

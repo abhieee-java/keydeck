@@ -136,9 +136,10 @@ export function ConnectionSheet() {
                   }
                   onPress={() => void connect(device)}
                 >
-                  {connected
+                  {connected && connection.device?.id === device.id
                     ? "Connected"
-                    : connection.status === "connecting"
+                    : connection.status === "connecting" &&
+                        connection.device?.id === device.id
                       ? "Connecting…"
                       : "Connect"}
                 </Button>

@@ -19,7 +19,7 @@ Before calling a release production-validated, record phone model, Android build
 
 Use a physical phone with fixed brightness, refresh rate, battery saver settings, temperature, and network state. Compare equal-duration runs with the screen on: baseline, Keydeck open and idle, connected and idle, and active pointer/text input. Repeat both 30 Hz and 60 Hz modes. Reset Android battery statistics before each run and collect `adb shell dumpsys batterystats` afterward. Use Android Studio Power Profiler where supported. Record elapsed time and charge/energy measurements, repeat runs, and publish the device-specific differences rather than a universal battery claim.
 
-Implementation currently avoids idle polling, perpetual animation, wake locks, and a background service. Pointer reports are scheduled only while there is input; the queue bounds pending movement and preserves button transitions. Backgrounding a connected session releases input and unregisters HID. Screen and Bluetooth activity still consume energy.
+Implementation currently avoids idle polling, perpetual animation, wake locks, and a background service. Pointer reports are scheduled only while there is input; the queue bounds pending movement and preserves button transitions. Backgrounding releases input and pauses sending. Android manages background HID registration; returning to the foreground reconciles the live host and restores registration when needed. Screen and Bluetooth activity still consume energy.
 
 ## Current qualification
 

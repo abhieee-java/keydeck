@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — Bluetooth connection recovery
+
+- Preserve connected state when Android registration callbacks arrive late.
+- Reconcile the actual HID host on startup, refresh, and foreground return.
+- Release input during pairing dialogs without forcibly unregistering Bluetooth.
+- Wait for registration before connecting; ignore stale connection snapshots.
+- Use actual connection status in the header and label only the active device as connected.
+- Keep the original package/signing identity and increase Android version code to 2 for in-place updates.
+
 ## 0.1.0 — initial preview
 
 [Signed APK and release notes](https://github.com/abhieee-java/keydeck/releases/tag/v0.1.0)

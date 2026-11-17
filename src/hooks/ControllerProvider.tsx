@@ -92,6 +92,10 @@ function useController() {
     const off = transport.subscribe((state) => {
       setConnection(state);
       if (state.message) setError(state.message);
+      else if (state.status === "connected") {
+        setError("");
+        setNotice("");
+      }
     });
     return () => {
       off();
@@ -103,15 +107,19 @@ function useController() {
   }, [tab, showDevices, transport]);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "background" && connected) {
+      if (state === "active") {
+        void transport
+          .resume()
+          .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+      } else if (state === "background") {
         void transport.suspend().catch(() => {});
-        setNotice(
-          "Session paused in the background. Reconnect when you are ready.",
-        );
-      } else if (state === "inactive") void transport.release().catch(() => {});
+        setNotice("Input paused while the app is in the background.");
+      } else void transport.release().catch(() => {});
     });
+    // Recover an already-connected Android HID host after JS mounts/reloads.
+    void transport.resume().catch(() => {});
     return () => sub.remove();
-  }, [transport, connected]);
+  }, [transport]);
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       if (showDevices) {
