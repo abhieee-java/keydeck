@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Keydeck",
+    "slug": "keydeck",
+    "version": "0.1.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "io.github.abhieeejava.keydeck",
+      "permissions": [
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_ADVERTISE"
+      ],
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 28
+          }
+        }
+      ],
+      "expo-router",
+      "./plugins/withReleaseSigning"
+    ],
+    "scheme": "keydeck",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

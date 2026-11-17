@@ -1,0 +1,72 @@
+name: Signed Android release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag (e.g. v0.1.0)
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Validate version and signing setup
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          node -e 'if (process.env.RELEASE_TAG !== `v${require("./app.json").expo.version}`) throw new Error("Tag must match app.json version")'
+          test -n "$KEYSTORE" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD" || { echo 'Configure the four Android signing secrets documented in docs/RELEASING.md.'; exit 1; }
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/keydeck.jks"
+          chmod 600 "$RUNNER_TEMP/keydeck.jks"
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm test
+      - run: npx expo prebuild --platform android --no-install
+      - name: Build signed release
+        working-directory: android
+        env:
+          KEYDECK_KEYSTORE: ${{ runner.temp }}/keydeck.jks
+          KEYDECK_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEYDECK_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEYDECK_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64
+      - name: Verify and package
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          mkdir release
+          cp android/app/build/outputs/apk/release/app-release.apk "release/keydeck-${RELEASE_TAG}.apk"
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose --print-certs "release/keydeck-${RELEASE_TAG}.apk" > release/SIGNING-CERTIFICATE.txt
+          cd release
+          sha256sum "keydeck-${RELEASE_TAG}.apk" > SHA256SUMS.txt
+      - name: Publish draft for device verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: gh release create "$RELEASE_TAG" release/* --verify-tag --draft --title "Keydeck $RELEASE_TAG" --notes-file docs/RELEASE_NOTES.md
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/keydeck.jks"

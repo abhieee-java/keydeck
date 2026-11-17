@@ -1,0 +1,10 @@
+name: Feature request
+description: Suggest a useful addition to Keydeck.
+body:
+  - type: textarea
+    id: problem
+    attributes: {label: What would you like to do?, description: Describe the task that is difficult today.}
+    validations: {required: true}
+  - type: textarea
+    id: proposal
+    attributes: {label: Suggested behavior}

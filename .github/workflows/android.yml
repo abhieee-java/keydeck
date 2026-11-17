@@ -1,0 +1,42 @@
+name: Android build
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '*.md', '.github/ISSUE_TEMPLATE/**']
+  pull_request:
+    paths-ignore: ['docs/**', '*.md', '.github/ISSUE_TEMPLATE/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      KEYDECK_UNSIGNED_BUILD: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      - run: npx expo prebuild --platform android --no-install
+      - name: Compile standalone Android APK
+        working-directory: android
+        run: ./gradlew :app:assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: keydeck-unsigned-apk
+          path: android/app/build/outputs/apk/release/*-unsigned.apk
+          if-no-files-found: error
+          retention-days: 14

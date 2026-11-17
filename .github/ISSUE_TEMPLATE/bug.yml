@@ -1,0 +1,26 @@
+name: Bug report
+description: Report a connection or controller problem.
+title: '[Bug] '
+body:
+  - type: input
+    id: version
+    attributes: {label: Keydeck version, placeholder: 'v0.1.0'}
+    validations: {required: true}
+  - type: input
+    id: phone
+    attributes: {label: Phone and Android version, placeholder: 'Pixel 8, Android 15'}
+    validations: {required: true}
+  - type: input
+    id: computer
+    attributes: {label: Computer OS and version}
+    validations: {required: true}
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Connection mode
+      options: [Bluetooth HID, Preview]
+    validations: {required: true}
+  - type: textarea
+    id: reproduction
+    attributes: {label: Steps and expected result, description: 'Include what actually happened. Remove Bluetooth addresses and personal text from logs.'}
+    validations: {required: true}

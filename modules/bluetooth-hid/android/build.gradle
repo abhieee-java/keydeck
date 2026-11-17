@@ -1,0 +1,14 @@
+apply plugin: 'com.android.library'
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'expo.modules.bluetoothhid'
+version = '0.1.0'
+
+android {
+  namespace 'expo.modules.bluetoothhid'
+  defaultConfig {
+    minSdkVersion 28
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
