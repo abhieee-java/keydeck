@@ -28,7 +28,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - run: npm ci
       - run: npx expo prebuild --platform android --no-install
       - name: Compile standalone Android APK
