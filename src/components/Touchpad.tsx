@@ -88,7 +88,7 @@ export function Touchpad({
     [enabled, onGrant, onMove, onRelease, onTerminate],
   );
   return (
-    <View style={[{ gap: 12 }, fullscreen && { flex: 1 }]}>
+    <View style={{ gap: 12, flex: 1 }}>
       <View
         {...responder.panHandlers}
         accessibilityLabel="Touchpad. Drag to move, tap to click, two fingers to scroll. Extra controls provide button alternatives."
@@ -96,7 +96,7 @@ export function Touchpad({
       >
         <View pointerEvents="none" style={styles.padTop}>
           <Text style={styles.padLabel}>
-            {fullscreen ? "FULLSCREEN TOUCH SURFACE" : "TOUCH SURFACE"}
+            {fullscreen ? "EXPANDED TOUCHPAD" : "TOUCHPAD"}
           </Text>
           <Move size={15} color={t.muted} />
         </View>
@@ -119,7 +119,7 @@ export function Touchpad({
               fullscreen && { fontSize: 23, letterSpacing: -0.6 },
             ]}
           >
-            {enabled ? "Make your move." : "A little space to move."}
+            {enabled ? "Make your move." : "Ready when you are."}
           </Text>
           <Text
             style={[
@@ -129,7 +129,7 @@ export function Touchpad({
           >
             {enabled
               ? "One finger to move. Two to scroll."
-              : "Connect your computer to begin."}
+              : "Use Connect above to enable the touchpad."}
           </Text>
         </View>
         <View pointerEvents="none" style={styles.padBottom}>
@@ -238,7 +238,8 @@ export function Touchpad({
 }
 const styles = StyleSheet.create({
   pad: {
-    minHeight: 250,
+    flex: 1,
+    minHeight: 220,
     backgroundColor: "#101722",
     borderWidth: 1,
     borderColor: "#2B3A52",
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
   } as any,
   padFullscreen: {
     flex: 1,
-    minHeight: 480,
+    minHeight: 300,
     backgroundColor: "#0C121D",
     borderColor: "#30425E",
     borderWidth: 1.5,

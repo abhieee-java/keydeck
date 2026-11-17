@@ -95,7 +95,7 @@ export const s = StyleSheet.create({
     borderColor: t.border,
     borderWidth: 1,
     borderRadius: 24,
-    padding: 20,
+    padding: 16,
   },
   label: {
     color: t.muted,
@@ -117,7 +117,13 @@ export const s = StyleSheet.create({
     justifyContent: "center",
     gap: 9,
   },
-  buttonText: { color: t.text, fontSize: 14, fontWeight: "600" },
+  buttonText: {
+    color: t.text,
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
+    textAlign: "center",
+  },
   iconButton: {
     width: 48,
     height: 48,

@@ -3,7 +3,7 @@ test("preview connects, sends text, composes commands, and disconnects", async (
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByText("Your desk. Within reach.")).toBeVisible();
+  await expect(page.getByText("Your computer, in hand.")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Left click", exact: true }),
   ).toBeDisabled();
@@ -18,7 +18,10 @@ test("preview connects, sends text, composes commands, and disconnects", async (
   await expect(
     page.getByText("Text previewed. Nothing was sent to a computer."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Console", exact: true }).click();
+  await page.getByRole("button", { name: "Keyboard", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Terminal commands", exact: true })
+    .click();
   await page.getByLabel("Command", { exact: true }).fill("pwd");
   await page.getByRole("button", { name: "Preview + Enter" }).click();
   await expect(page.getByText("preview $ pwd")).toBeVisible();
@@ -149,4 +152,52 @@ test("backgrounding pauses the session and prevents further input", async ({
   await expect(
     page.getByRole("button", { name: "Left click", exact: true }),
   ).toBeEnabled();
+});
+
+test("gamepad clearly gates input and exposes selected control mode", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/console");
+  await expect(
+    page.getByRole("button", { name: "D-Pad Up", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Connect Bluetooth Host" }).click();
+  await expect(
+    page.getByRole("button", { name: "Make discoverable" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await page.getByRole("button", { name: "Start controlling" }).click();
+  await expect(
+    page.getByRole("button", { name: "D-Pad Up", exact: true }),
+  ).toBeEnabled();
+  await page.getByRole("radio", { name: "Switch to PC WASD Mode" }).click();
+  await expect(
+    page.getByRole("radio", { name: "Switch to PC WASD Mode" }),
+  ).toBeChecked();
+  const target = await page
+    .getByRole("button", { name: "D-Pad Up", exact: true })
+    .boundingBox();
+  expect(target!.width).toBeGreaterThanOrEqual(48);
+  expect(target!.height).toBeGreaterThanOrEqual(48);
+});
+
+test("narrow gamepad and expanded touchpad retain navigation and connection access", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto("/console");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await page.getByRole("button", { name: "Control", exact: true }).click();
+  await page.getByRole("button", { name: "Open full touchpad" }).click();
+  await expect(page).toHaveURL(/touchpad$/);
+  await expect(
+    page.getByRole("button", { name: "Connect computer" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Exit full touchpad" }).click();
+  await expect(page.getByText("Your computer, in hand.")).toBeVisible();
 });

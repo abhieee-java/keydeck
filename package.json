@@ -37,7 +37,10 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\" *.json *.ts",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "web": "expo start --web",
+    "build:web": "expo export --platform web",
+    "test:ui": "playwright test"
   },
   "private": true,
   "description": "Turn your Android phone into a Bluetooth keyboard and mouse.",

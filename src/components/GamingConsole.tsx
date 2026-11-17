@@ -5,6 +5,7 @@ import {
   Text,
   Vibration,
   View,
+  useWindowDimensions,
 } from "react-native";
 import {
   Gamepad2,
@@ -29,7 +30,9 @@ import {
 type ControllerMode = "gamepad" | "pc_wasd" | "pc_arrows";
 
 export function GamingConsole() {
-  const { transport, connected, preview, connection, openDevices } = useSession();
+  const narrow = useWindowDimensions().width < 370;
+  const { transport, connected, preview, connection, openDevices, run } =
+    useSession();
   const [mode, setMode] = useState<ControllerMode>("gamepad");
   const [activeButtons, setActiveButtons] = useState<number>(0);
   const [dpadState, setDpadState] = useState({
@@ -58,7 +61,13 @@ export function GamingConsole() {
   };
 
   const sendGamepadState = useCallback(
-    (buttons: number, up: boolean, down: boolean, left: boolean, right: boolean) => {
+    (
+      buttons: number,
+      up: boolean,
+      down: boolean,
+      left: boolean,
+      right: boolean,
+    ) => {
       if (!connected && !preview) return;
       const dpad = calculateDpadHat(up, down, left, right);
       void transport
@@ -99,8 +108,7 @@ export function GamingConsole() {
       // Keyboard mapping (WASD or Retro Arrows)
       const mappingTable =
         mode === "pc_wasd" ? PC_KEYBOARD_MAPPINGS : RETRO_KEYBOARD_MAPPINGS;
-      const mapping =
-        mappingTable[btnKey as keyof typeof mappingTable];
+      const mapping = mappingTable[btnKey as keyof typeof mappingTable];
       if (mapping) {
         if (mapping.modifier) heldModifiersRef.current |= mapping.modifier;
         for (const code of mapping.keys) heldKeysRef.current.add(code);
@@ -125,8 +133,7 @@ export function GamingConsole() {
     } else {
       const mappingTable =
         mode === "pc_wasd" ? PC_KEYBOARD_MAPPINGS : RETRO_KEYBOARD_MAPPINGS;
-      const mapping =
-        mappingTable[btnKey as keyof typeof mappingTable];
+      const mapping = mappingTable[btnKey as keyof typeof mappingTable];
       if (mapping) {
         if (mapping.modifier) heldModifiersRef.current &= ~mapping.modifier;
         for (const code of mapping.keys) heldKeysRef.current.delete(code);
@@ -196,7 +203,7 @@ export function GamingConsole() {
     setDpadState({ up: false, down: false, left: false, right: false });
     heldKeysRef.current.clear();
     heldModifiersRef.current = 0;
-    void transport.release();
+    void run(() => transport.release());
   };
 
   const isBtnActive = (key: keyof typeof GAMEPAD_BUTTONS) =>
@@ -206,19 +213,30 @@ export function GamingConsole() {
     <View style={styles.container}>
       {/* HUD Header Card */}
       <View style={styles.hudCard}>
-        <View style={styles.hudTopRow}>
+        <View
+          style={[
+            styles.hudTopRow,
+            narrow && {
+              flexDirection: "column",
+              alignItems: "stretch",
+              gap: 12,
+            },
+          ]}
+        >
           <View style={styles.hudBrand}>
             <View style={styles.hudIconBadge}>
               <Gamepad2 size={18} color={t.accent} />
             </View>
-            <View>
-              <Text style={styles.hudTitle}>Console Deck</Text>
+            <View style={{ flex: 1 }}>
+              <Text accessibilityRole="header" style={styles.hudTitle}>
+                Gamepad
+              </Text>
               <Text style={styles.hudSubtitle}>
                 {mode === "gamepad"
-                  ? "HID Gamepad · DirectInput / Steam"
+                  ? "For games with controller support"
                   : mode === "pc_wasd"
-                    ? "PC Keys · WASD + Space"
-                    : "Retro Keys · Arrows + Z/X"}
+                    ? "Keyboard controls · WASD + Space"
+                    : "Keyboard controls · Arrows + Z/X"}
               </Text>
             </View>
           </View>
@@ -247,7 +265,9 @@ export function GamingConsole() {
         {/* Mode Selector Switcher */}
         <View style={styles.modePills}>
           <Pressable
-            accessibilityRole="button"
+            accessibilityRole="radio"
+            accessibilityState={{ checked: mode === "gamepad" }}
+            aria-checked={mode === "gamepad"}
             accessibilityLabel="Switch to Gamepad HID Mode"
             onPress={() => {
               resetAll();
@@ -264,11 +284,13 @@ export function GamingConsole() {
                 mode === "gamepad" && styles.modePillTextActive,
               ]}
             >
-              HID Pad
+              Gamepad
             </Text>
           </Pressable>
           <Pressable
-            accessibilityRole="button"
+            accessibilityRole="radio"
+            accessibilityState={{ checked: mode === "pc_wasd" }}
+            aria-checked={mode === "pc_wasd"}
             accessibilityLabel="Switch to PC WASD Mode"
             onPress={() => {
               resetAll();
@@ -289,7 +311,9 @@ export function GamingConsole() {
             </Text>
           </Pressable>
           <Pressable
-            accessibilityRole="button"
+            accessibilityRole="radio"
+            accessibilityState={{ checked: mode === "pc_arrows" }}
+            aria-checked={mode === "pc_arrows"}
             accessibilityLabel="Switch to Retro Arrows Mode"
             onPress={() => {
               resetAll();
@@ -312,13 +336,26 @@ export function GamingConsole() {
         </View>
       </View>
 
+      <Text style={styles.helpText}>
+        {connected
+          ? "Hold a control to press. Lift your finger to release."
+          : "Connect your computer above to enable the controls."}
+      </Text>
       {/* Shoulder Triggers / Bumpers Bar */}
-      <View style={styles.shoulderRow}>
+      <View
+        style={[
+          styles.shoulderRow,
+          { opacity: connected ? 1 : 0.5 },
+          narrow && { flexWrap: "wrap" },
+        ]}
+      >
         {/* Left Shoulder: L2 & L1 */}
         <View style={styles.shoulderGroup}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Left Trigger L2"
+            disabled={!connected}
+            accessibilityState={{ disabled: !connected }}
             onPressIn={() => handleButtonPressIn("L2")}
             onPressOut={() => handleButtonPressOut("L2")}
             style={[
@@ -334,6 +371,8 @@ export function GamingConsole() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Left Bumper L1"
+            disabled={!connected}
+            accessibilityState={{ disabled: !connected }}
             onPressIn={() => handleButtonPressIn("L1")}
             onPressOut={() => handleButtonPressOut("L1")}
             style={[
@@ -353,6 +392,8 @@ export function GamingConsole() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Select button"
+            disabled={!connected}
+            accessibilityState={{ disabled: !connected }}
             onPressIn={() => handleButtonPressIn("SELECT")}
             onPressOut={() => handleButtonPressOut("SELECT")}
             style={[
@@ -365,12 +406,11 @@ export function GamingConsole() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Start button"
+            disabled={!connected}
+            accessibilityState={{ disabled: !connected }}
             onPressIn={() => handleButtonPressIn("START")}
             onPressOut={() => handleButtonPressOut("START")}
-            style={[
-              styles.sysBtn,
-              isBtnActive("START") && styles.sysBtnActive,
-            ]}
+            style={[styles.sysBtn, isBtnActive("START") && styles.sysBtnActive]}
           >
             <Text style={styles.sysText}>START</Text>
           </Pressable>
@@ -381,6 +421,8 @@ export function GamingConsole() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Right Bumper R1"
+            disabled={!connected}
+            accessibilityState={{ disabled: !connected }}
             onPressIn={() => handleButtonPressIn("R1")}
             onPressOut={() => handleButtonPressOut("R1")}
             style={[
@@ -396,6 +438,8 @@ export function GamingConsole() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Right Trigger R2"
+            disabled={!connected}
+            accessibilityState={{ disabled: !connected }}
             onPressIn={() => handleButtonPressIn("R2")}
             onPressOut={() => handleButtonPressOut("R2")}
             style={[
@@ -412,7 +456,13 @@ export function GamingConsole() {
       </View>
 
       {/* Main Controls Deck: D-Pad (Left) and ABXY Diamond (Right) */}
-      <View style={styles.deckRow}>
+      <View
+        style={[
+          styles.deckRow,
+          { opacity: connected ? 1 : 0.5 },
+          narrow && { flexDirection: "column", alignItems: "stretch" },
+        ]}
+      >
         {/* D-Pad Section */}
         <View style={styles.dpadDeck}>
           <View style={styles.dpadCross}>
@@ -420,6 +470,8 @@ export function GamingConsole() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="D-Pad Up"
+              disabled={!connected}
+              accessibilityState={{ disabled: !connected }}
               onPressIn={() => handleDpadPressIn("up")}
               onPressOut={() => handleDpadPressOut("up")}
               style={[
@@ -435,6 +487,8 @@ export function GamingConsole() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="D-Pad Left"
+              disabled={!connected}
+              accessibilityState={{ disabled: !connected }}
               onPressIn={() => handleDpadPressIn("left")}
               onPressOut={() => handleDpadPressOut("left")}
               style={[
@@ -443,7 +497,10 @@ export function GamingConsole() {
                 dpadState.left && styles.dpadBtnActive,
               ]}
             >
-              <ChevronLeft size={24} color={dpadState.left ? t.accent : t.text} />
+              <ChevronLeft
+                size={24}
+                color={dpadState.left ? t.accent : t.text}
+              />
             </Pressable>
 
             {/* D-Pad Center Pivot */}
@@ -455,6 +512,8 @@ export function GamingConsole() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="D-Pad Right"
+              disabled={!connected}
+              accessibilityState={{ disabled: !connected }}
               onPressIn={() => handleDpadPressIn("right")}
               onPressOut={() => handleDpadPressOut("right")}
               style={[
@@ -463,13 +522,18 @@ export function GamingConsole() {
                 dpadState.right && styles.dpadBtnActive,
               ]}
             >
-              <ChevronRight size={24} color={dpadState.right ? t.accent : t.text} />
+              <ChevronRight
+                size={24}
+                color={dpadState.right ? t.accent : t.text}
+              />
             </Pressable>
 
             {/* DOWN */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="D-Pad Down"
+              disabled={!connected}
+              accessibilityState={{ disabled: !connected }}
               onPressIn={() => handleDpadPressIn("down")}
               onPressOut={() => handleDpadPressOut("down")}
               style={[
@@ -478,7 +542,10 @@ export function GamingConsole() {
                 dpadState.down && styles.dpadBtnActive,
               ]}
             >
-              <ChevronDown size={24} color={dpadState.down ? t.accent : t.text} />
+              <ChevronDown
+                size={24}
+                color={dpadState.down ? t.accent : t.text}
+              />
             </Pressable>
           </View>
           <Text style={styles.deckLabel}>DIRECTIONAL PAD</Text>
@@ -491,6 +558,8 @@ export function GamingConsole() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Button Y"
+              disabled={!connected}
+              accessibilityState={{ disabled: !connected }}
               onPressIn={() => handleButtonPressIn("Y")}
               onPressOut={() => handleButtonPressOut("Y")}
               style={[
@@ -506,6 +575,8 @@ export function GamingConsole() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Button X"
+              disabled={!connected}
+              accessibilityState={{ disabled: !connected }}
               onPressIn={() => handleButtonPressIn("X")}
               onPressOut={() => handleButtonPressOut("X")}
               style={[
@@ -521,6 +592,8 @@ export function GamingConsole() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Button B"
+              disabled={!connected}
+              accessibilityState={{ disabled: !connected }}
               onPressIn={() => handleButtonPressIn("B")}
               onPressOut={() => handleButtonPressOut("B")}
               style={[
@@ -536,6 +609,8 @@ export function GamingConsole() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Button A"
+              disabled={!connected}
+              accessibilityState={{ disabled: !connected }}
               onPressIn={() => handleButtonPressIn("A")}
               onPressOut={() => handleButtonPressOut("A")}
               style={[
@@ -552,7 +627,7 @@ export function GamingConsole() {
       </View>
 
       {/* Thumbstick Stick-Click Bar (L3 / R3) */}
-      <View style={styles.stickRow}>
+      <View style={[styles.stickRow, { opacity: connected ? 1 : 0.5 }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Left Stick Click L3"
@@ -577,14 +652,16 @@ export function GamingConsole() {
       </View>
 
       {/* Bottom Auxiliary Controls */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { flexWrap: "wrap" }]}>
         <View style={styles.auxPill}>
           <Zap size={13} color={t.accent} />
-          <Text style={styles.auxPillText}>Low Latency Bluetooth HID</Text>
+          <Text style={styles.auxPillText}>Bluetooth controller</Text>
         </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Reset controller inputs"
+          disabled={!connected}
+          accessibilityState={{ disabled: !connected }}
           onPress={resetAll}
           style={styles.resetBtn}
         >
@@ -597,8 +674,17 @@ export function GamingConsole() {
 }
 
 const styles = StyleSheet.create({
+  helpText: {
+    color: t.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    paddingHorizontal: 4,
+  },
   container: {
-    gap: 12,
+    width: "100%",
+    maxWidth: 680,
+    alignSelf: "center",
+    gap: 18,
     paddingBottom: 16,
   },
   hudCard: {
@@ -631,15 +717,16 @@ const styles = StyleSheet.create({
     borderColor: t.border,
   },
   hudTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 21,
+    fontWeight: "600",
     color: t.text,
     letterSpacing: -0.2,
   },
   hudSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 18,
     color: t.muted,
-    marginTop: 1,
+    marginTop: 4,
   },
   connectedBadge: {
     flexDirection: "row",
@@ -659,6 +746,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   connectPill: {
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -683,6 +771,7 @@ const styles = StyleSheet.create({
     borderColor: t.border,
   },
   modePill: {
+    minHeight: 48,
     flex: 1,
     paddingVertical: 6,
     borderRadius: 9,
@@ -709,16 +798,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   shoulderGroup: {
+    minWidth: 112,
     flexDirection: "row",
     gap: 6,
     flex: 1,
   },
   centerGroup: {
+    minWidth: 104,
     flexDirection: "row",
     gap: 4,
     justifyContent: "center",
   },
   triggerBtn: {
+    minHeight: 56,
     flex: 1,
     backgroundColor: t.panel,
     borderRadius: 12,
@@ -735,6 +827,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
   },
   bumperBtn: {
+    minHeight: 56,
     flex: 1,
     backgroundColor: t.raised,
     borderRadius: 12,
@@ -763,6 +856,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   sysBtn: {
+    minWidth: 48,
+    minHeight: 48,
     backgroundColor: t.raised,
     borderRadius: 10,
     paddingVertical: 8,
@@ -818,8 +913,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   dpadCross: {
-    width: 132,
-    height: 132,
+    width: 144,
+    height: 144,
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
@@ -839,14 +934,14 @@ const styles = StyleSheet.create({
   },
   dpadUp: {
     top: 0,
-    width: 44,
+    width: 48,
     height: 48,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },
   dpadDown: {
     bottom: 0,
-    width: 44,
+    width: 48,
     height: 48,
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
@@ -854,20 +949,20 @@ const styles = StyleSheet.create({
   dpadLeft: {
     left: 0,
     width: 48,
-    height: 44,
+    height: 48,
     borderTopLeftRadius: 10,
     borderBottomLeftRadius: 10,
   },
   dpadRight: {
     right: 0,
     width: 48,
-    height: 44,
+    height: 48,
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
   },
   dpadCenter: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     backgroundColor: "#18202C",
     alignItems: "center",
     justifyContent: "center",
@@ -881,17 +976,17 @@ const styles = StyleSheet.create({
     borderColor: "#334155",
   },
   actionDiamond: {
-    width: 132,
-    height: 132,
+    width: 144,
+    height: 144,
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
   },
   actionBtn: {
     position: "absolute",
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#18202C",
     borderWidth: 1.5,
     borderColor: "#334155",
@@ -925,6 +1020,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   stickBtn: {
+    minHeight: 48,
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
@@ -975,6 +1071,7 @@ const styles = StyleSheet.create({
     fontFamily: mono,
   },
   resetBtn: {
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,

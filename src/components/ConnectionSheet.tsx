@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Modal,
@@ -13,6 +14,8 @@ import { useSession } from "../hooks/ControllerProvider";
 import { Button, IconButton, s } from "./ui";
 import { theme as t } from "../theme";
 export function ConnectionSheet() {
+  const insets = useSafeAreaInsets();
+  const [pairingHelp, setPairingHelp] = useState(false);
   const {
     showDevices,
     setShowDevices,
@@ -42,10 +45,16 @@ export function ConnectionSheet() {
           accessibilityLabel="Close connection sheet"
           onPress={() => setShowDevices(false)}
         />
-        <View accessibilityViewIsModal style={styles.sheet}>
+        <View
+          accessibilityViewIsModal
+          style={[styles.sheet, { paddingBottom: Math.max(20, insets.bottom) }]}
+        >
           <View style={styles.handle} />
           <View style={[s.row, { justifyContent: "space-between" }]}>
-            <Text accessibilityRole="header" style={styles.title}>
+            <Text
+              accessibilityRole="header"
+              style={[styles.title, { flex: 1 }]}
+            >
               Connect your computer
             </Text>
             <IconButton
@@ -61,9 +70,9 @@ export function ConnectionSheet() {
             <Text style={s.body}>
               {preview
                 ? "Explore with a sample computer. Preview input stays on this device."
-                : "Pair once. Then your computer is always within reach."}
+                : "Choose a paired computer, or pair a new one."}
             </Text>
-            {!preview && (
+            {!preview && (pairingHelp || devices.length === 0) && (
               <View style={styles.steps}>
                 {[
                   "Enable Bluetooth on your computer.",
@@ -93,23 +102,31 @@ export function ConnectionSheet() {
                 />
               </View>
             )}
-            <View style={[s.row, { flexWrap: "wrap" }]}>
-              <Button
-                primary
-                icon={Bluetooth}
-                disabled={busy}
-                onPress={() => void run(() => transport.discoverable())}
-              >
-                Make discoverable
-              </Button>
-              <Button
-                icon={RefreshCw}
-                disabled={busy}
-                onPress={() => void openDevices()}
-              >
-                Refresh
-              </Button>
-            </View>
+            {!preview && (
+              <View style={[s.row, { flexWrap: "wrap" }]}>
+                {pairingHelp || devices.length === 0 ? (
+                  <Button
+                    primary
+                    icon={Bluetooth}
+                    disabled={busy}
+                    onPress={() => void run(() => transport.discoverable())}
+                  >
+                    Make discoverable
+                  </Button>
+                ) : (
+                  <Button icon={Bluetooth} onPress={() => setPairingHelp(true)}>
+                    Pair new computer
+                  </Button>
+                )}
+                <Button
+                  icon={RefreshCw}
+                  disabled={busy}
+                  onPress={() => void openDevices()}
+                >
+                  Refresh
+                </Button>
+              </View>
+            )}
             <Text style={styles.label}>
               {preview ? "PREVIEW DEVICE" : "PAIRED DEVICES"}
             </Text>
@@ -130,11 +147,12 @@ export function ConnectionSheet() {
                     {preview
                       ? "Sample computer"
                       : device.isComputer
-                        ? "Paired computer (Recommended)"
+                        ? "Paired computer"
                         : "Paired over Bluetooth"}
                   </Text>
                 </View>
                 <Button
+                  primary={!connected}
                   disabled={
                     busy || connection.status === "connecting" || connected
                   }
@@ -168,10 +186,12 @@ export function ConnectionSheet() {
                 Start controlling
               </Button>
             )}
-            <Text style={[s.body, { fontSize: 12 }]}>
-              Initial pairing needs access to your computer’s Bluetooth
-              settings.
-            </Text>
+            {!preview && (
+              <Text style={[s.body, { fontSize: 12 }]}>
+                Initial pairing needs access to your computer’s Bluetooth
+                settings.
+              </Text>
+            )}
           </ScrollView>
         </View>
       </View>

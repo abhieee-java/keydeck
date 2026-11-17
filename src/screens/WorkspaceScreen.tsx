@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import Constants from "expo-constants";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,7 +14,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
-  ArrowUpRight,
   Battery,
   Bluetooth,
   Check,
@@ -45,7 +45,7 @@ import { theme as t, mono } from "../theme";
 const destinations = [
   { name: "Overview", label: "Control", icon: MousePointer2 },
   { name: "Keyboard", label: "Keyboard", icon: Keyboard },
-  { name: "Console", label: "Console", icon: Gamepad2 },
+  { name: "Console", label: "Gamepad", icon: Gamepad2 },
   { name: "Settings", label: "Settings", icon: Settings2 },
 ] as const;
 
@@ -164,7 +164,7 @@ function TextComposer({ compact = false }: { compact?: boolean }) {
         onChangeText={setDraft}
         maxLength={2000}
         multiline
-        placeholder="Write something. Send it anywhere."
+        placeholder="Type text for the focused app…"
         placeholderTextColor={t.muted}
         style={[
           s.input,
@@ -215,7 +215,7 @@ function ControlScreen() {
         style={[
           { flex: 1 },
           isFullscreen && {
-            minHeight: 520,
+            minHeight: 400,
             padding: 14,
             backgroundColor: "#0D131D",
             borderColor: "#2B3C56",
@@ -233,12 +233,12 @@ function ControlScreen() {
         >
           <View>
             <Text style={styles.sectionTitle}>
-              {isFullscreen ? "Fullscreen Touchpad" : "Touchpad"}
+              {isFullscreen ? "Touchpad" : "Touchpad"}
             </Text>
             <Text style={[styles.caption, { marginTop: 4 }]}>
               {isFullscreen
-                ? "Expansive glass surface. Tap minimize to restore."
-                : "A natural extension of your hand."}
+                ? "More room to move. Your controls stay below."
+                : "Move · tap to click · two-finger scroll"}
             </Text>
           </View>
           <IconButton
@@ -296,6 +296,7 @@ function ControlScreen() {
 }
 function KeyboardScreen() {
   const { connected, key } = useSession();
+  const [commandsOpen, setCommandsOpen] = useState(false);
   return (
     <View style={{ gap: 20 }}>
       <Panel>
@@ -342,6 +343,10 @@ function KeyboardScreen() {
         </Text>
         <QuickActions />
       </Panel>
+      <Button icon={Terminal} onPress={() => setCommandsOpen(!commandsOpen)}>
+        {commandsOpen ? "Hide terminal commands" : "Terminal commands"}
+      </Button>
+      {commandsOpen && <ConsoleScreen />}
     </View>
   );
 }
@@ -611,7 +616,8 @@ function SettingsScreen() {
         ))}
       </Panel>
       <Text style={[styles.caption, { textAlign: "center", lineHeight: 20 }]}>
-        Keydeck · 0.1.0 preview{"\n"}Made for a lighter desk.
+        Keydeck · {Constants.expoConfig?.version ?? "Preview"}
+        {"\n"}Android Bluetooth controller
       </Text>
     </View>
   );
@@ -667,20 +673,21 @@ export default function WorkspaceScreen() {
     </Pressable>
   );
   const titles: Record<Tab, string> = {
-    Overview: connected
-      ? "Everything, within reach."
-      : "Your desk. Within reach.",
+    Overview: connected ? "You’re in control." : "Your computer, in hand.",
     Touchpad: "Make room to move.",
-    Keyboard: "Every word, every key.",
+    Keyboard: "Type with ease.",
     Console: "Play without limits.",
-    Settings: "Make yourself at home.",
+    Settings: "Your preferences.",
   };
   const subtitles: Record<Tab, string> = {
-    Overview: "A little less hardware. A lot more freedom.",
+    Overview: connected
+      ? "Move, click, and type. Right from here."
+      : "Connect your computer to get started.",
     Touchpad: "A touch surface that goes wherever you do.",
     Keyboard: "Compose here. Send to the app on your computer.",
-    Console: "Gaming console controller with D-pad, triggers and action buttons.",
-    Settings: "Small adjustments. A more natural connection.",
+    Console:
+      "Gaming console controller with D-pad, triggers and action buttons.",
+    Settings: "Tune your controls. Keep what feels right.",
   };
   return (
     <SafeAreaView style={styles.root}>
@@ -777,7 +784,7 @@ export default function WorkspaceScreen() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
               styles.content,
-              !medium && { padding: 20, gap: 20 },
+              !medium && { padding: 16, gap: 16 },
               tab === "Touchpad" && { flexGrow: 1, padding: 12, gap: 12 },
             ]}
           >
@@ -787,7 +794,7 @@ export default function WorkspaceScreen() {
                   accessibilityRole="header"
                   style={[
                     styles.heading,
-                    !medium && { fontSize: 30, lineHeight: 37 },
+                    !medium && { fontSize: 27, lineHeight: 34 },
                   ]}
                 >
                   {titles[tab]}
@@ -820,42 +827,11 @@ export default function WorkspaceScreen() {
                 />
               </View>
             )}
-            {tab !== "Console" && tab !== "Touchpad" && <SessionCard />}
+            {tab !== "Console" && <SessionCard />}
             {(tab === "Overview" || tab === "Touchpad") && <ControlScreen />}
             {tab === "Keyboard" && <KeyboardScreen />}
             {tab === "Console" && <GamingConsole />}
             {tab === "Settings" && <SettingsScreen />}
-            {tab === "Overview" && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open gaming console"
-                onPress={() => setTab("Console")}
-                style={styles.consoleLink}
-              >
-                <View style={styles.consoleIcon}>
-                  <Gamepad2 size={22} color={t.accent} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sectionTitle}>Game console ready.</Text>
-                  <Text style={[styles.caption, { marginTop: 6 }]}>
-                    Open full gamepad controller
-                  </Text>
-                </View>
-                <ArrowUpRight size={21} color={t.accent} />
-              </Pressable>
-            )}
-            {tab !== "Console" && tab !== "Touchpad" && (
-              <View style={styles.footer}>
-                <Text style={styles.caption}>
-                  {connected
-                    ? "Your session is ready."
-                    : "Connect once. Make yourself comfortable."}
-                </Text>
-                <Text style={[styles.caption, { fontSize: 11 }]}>
-                  KEYDECK / ANDROID
-                </Text>
-              </View>
-            )}
           </ScrollView>
           {!wide && (
             <View style={styles.bottomNav}>{destinations.map(nav)}</View>
@@ -921,7 +897,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   topbar: {
-    height: 77,
+    minHeight: 64,
+    paddingVertical: 10,
     paddingHorizontal: 22,
     flexDirection: "row",
     alignItems: "center",
@@ -951,13 +928,13 @@ const styles = StyleSheet.create({
   },
   headingBlock: { paddingTop: 5, paddingBottom: 3 },
   heading: {
-    fontSize: 38,
-    lineHeight: 46,
+    fontSize: 34,
+    lineHeight: 42,
     color: t.text,
     fontWeight: "500",
-    letterSpacing: -1.4,
+    letterSpacing: -1,
   },
-  caption: { fontSize: 12, color: t.muted },
+  caption: { fontSize: 12, lineHeight: 18, color: t.muted },
   sectionTitle: {
     color: t.text,
     fontSize: 16,
@@ -984,7 +961,7 @@ const styles = StyleSheet.create({
   },
   deviceName: { color: t.text, fontSize: 15, fontWeight: "600" },
   connectButton: {
-    minHeight: 46,
+    minHeight: 48,
     borderRadius: 14,
     backgroundColor: t.accent,
     paddingHorizontal: 15,
@@ -997,7 +974,7 @@ const styles = StyleSheet.create({
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   quickAction: {
     width: "47%",
-    minHeight: 92,
+    minHeight: 78,
     borderRadius: 17,
     padding: 15,
     backgroundColor: t.raised,
