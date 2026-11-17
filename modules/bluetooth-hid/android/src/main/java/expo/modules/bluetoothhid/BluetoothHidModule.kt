@@ -113,7 +113,10 @@ class BluetoothHidModule : Module() {
       }
     }
     AsyncFunction("getDevices") {
-      adapter?.bondedDevices?.map { mapOf("id" to it.address, "name" to (it.name ?: "Bluetooth device")) } ?: emptyList()
+      val devices: List<Map<String, String>> = adapter?.bondedDevices?.map { device ->
+        mapOf("id" to device.address, "name" to (device.name ?: "Bluetooth device"))
+      } ?: emptyList<Map<String, String>>()
+      devices
     }
     AsyncFunction("makeDiscoverable") {
       val activity = appContext.currentActivity ?: throw IllegalStateException("Open the app before pairing.")
