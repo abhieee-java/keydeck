@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.1.0 — initial preview (in preparation)
+## 0.1.0 — initial preview
+
+[Signed APK and release notes](https://github.com/abhieee-java/keydeck/releases/tag/v0.1.0)
 
 - Android Bluetooth HID keyboard and mouse module
 - Touchpad, text input, keyboard shortcuts, and command composer

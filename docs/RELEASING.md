@@ -44,3 +44,7 @@ The workflow decodes the keystore into the runner's temporary directory and remo
 - Android Back, TalkBack, large text, and narrow screens
 
 The signing identity, APK signature, and checksums must be verified before upload. Do not overwrite a published asset with different bytes under the same version.
+
+## First preview publication
+
+v0.1.0 was compiled from `e3f47b12b6ffd1aa323e5f72fa3c534100c7b953` in [Android build 44064240304](https://github.com/abhieee-java/keydeck/actions/runs/44064240304), signed privately, and uploaded through [publication run 44110622475](https://github.com/abhieee-java/keydeck/actions/runs/44110622475). The publication job verified the APK checksum and certificate before upload. Its temporary branch was removed after publication so the prepared binary was not added to main. The private signing key was never uploaded. Future automated signing still requires the four repository secrets above.

@@ -1,22 +1,29 @@
-## Keydeck Android preview
+## Install Keydeck
 
-A React Native Android preview for a Bluetooth mouse, keyboard, shortcuts, and command input from Android.
+Download **keydeck-v0.1.0.apk** below on an Android 9+ phone, open it, and allow your browser to install apps when Android asks. This is a standalone signed APK: no Expo Go, account, or development server required.
 
-### Install
-
-Download the attached `keydeck-vX.Y.Z.apk` on an Android 9+ phone. Open it and follow Android's installer. No Expo Go or development server is needed. See the [installation guide](https://github.com/abhieee-java/keydeck/blob/main/docs/INSTALL.md) for pairing.
+[Installation and pairing guide](https://github.com/abhieee-java/keydeck/blob/main/docs/INSTALL.md)
 
 ### Included
 
-- Touchpad movement, clicks, drag toggle, scroll, and direction buttons
-- ASCII typing, function/navigation keys, preset and custom shortcuts
-- Command composer that sends text + Enter to a focused terminal
-- Refined dark interface, pairing sheet, and locally saved preferences
-- Demand-driven pointer batching and foreground-only sessions
-- Local preview mode and connection recovery messages
+- Bluetooth touchpad, left/right click, drag, scrolling, and alternative direction controls
+- ASCII keyboard input, navigation/function keys, and custom shortcuts
+- Command composer for typing into a focused computer terminal
+- Refined dark mobile interface and dedicated pairing sheet
+- Local host/sensitivity preferences, demand-driven 30/60 Hz pointer scheduling, and background session suspension
 
-### Preview limitations
+### Verification
 
-Physical Bluetooth behavior, TalkBack, and battery consumption have not yet been verified across physical devices. Some Android firmware does not support HID device mode. Keep the app in the foreground. US-layout ASCII only. Command output, remote screen viewing, and a desktop companion are not included.
+Source: `e3f47b12b6ffd1aa323e5f72fa3c534100c7b953`.
 
-`SHA256SUMS.txt` verifies the APK bytes. `SIGNING-CERTIFICATE.txt` identifies the signing certificate. Source ZIP/TAR downloads are not installable applications.
+Lint, TypeScript, 15 core tests, 7 browser interaction tests, web export, and the standalone Android build passed. APK signing, package identity, bundled JavaScript, and alignment were checked. `SHA256SUMS.txt` checks the downloaded APK; `SIGNING-CERTIFICATE.txt` records the signing certificate.
+
+### Preview status
+
+Physical-phone Bluetooth, TalkBack, installation, and battery measurements are still pending. Some Android firmware disables HID device mode. Keep Keydeck in the foreground; reconnect after backgrounding. Screen and Bluetooth activity consume power—no zero-battery-impact claim is made.
+
+The computer needs Bluetooth keyboard/mouse support, and initial pairing requires access to its Bluetooth settings. Text encoding uses US-layout ASCII. The console sends input only: terminal output and remote screen viewing are not included. This does not replace input in BIOS or every protected operating-system dialog.
+
+The dependency audit has a moderate advisory in Expo's build-time fingerprint dependency; no high or critical findings were reported. See [validation details](https://github.com/abhieee-java/keydeck/blob/main/docs/VALIDATION.md).
+
+GitHub's source ZIP/TAR archives are for developers and cannot be installed as Android apps.

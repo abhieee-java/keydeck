@@ -9,9 +9,9 @@
 
 <p align="center"><b>A Bluetooth keyboard and mouse that fits in your pocket.</b><br />Turn an Android phone into a touchpad, keyboard, and command input device for your computer.</p>
 
-<p align="center"><a href="https://github.com/abhieee-java/keydeck/releases"><b>↓ APK releases</b></a> · <a href="docs/INSTALL.md">Install & pair</a> · <a href="#what-you-can-do">Features</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
+<p align="center"><a href="https://github.com/abhieee-java/keydeck/releases/download/v0.1.0/keydeck-v0.1.0.apk"><b>↓ Download Android APK</b></a> · <a href="docs/INSTALL.md">Install & pair</a> · <a href="#what-you-can-do">Features</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 
-> **Early preview.** The first signed APK is being prepared. Source and browser-preview tests are available; physical Bluetooth compatibility is not yet device-tested. Only install an APK attached to a release—GitHub's “Source code” downloads are not apps.
+> **v0.1.0 preview is available.** [Download the signed Android APK](https://github.com/abhieee-java/keydeck/releases/download/v0.1.0/keydeck-v0.1.0.apk) or read the [release notes](https://github.com/abhieee-java/keydeck/releases/tag/v0.1.0). Android compilation and automated tests pass; physical Bluetooth compatibility, installation, and battery measurements are still pending. GitHub’s “Source code” downloads are not installable apps.
 
 ## From download to control
 
