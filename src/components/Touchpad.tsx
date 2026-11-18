@@ -240,9 +240,9 @@ const styles = StyleSheet.create({
   pad: {
     flex: 1,
     minHeight: 220,
-    backgroundColor: "#101722",
+    backgroundColor: "#08090A",
     borderWidth: 1,
-    borderColor: "#2B3A52",
+    borderColor: "#303438",
     borderRadius: 22,
     overflow: "hidden",
     alignItems: "center",
@@ -252,8 +252,8 @@ const styles = StyleSheet.create({
   padFullscreen: {
     flex: 1,
     minHeight: 300,
-    backgroundColor: "#0C121D",
-    borderColor: "#30425E",
+    backgroundColor: "#08090A",
+    borderColor: "#303438",
     borderWidth: 1.5,
     borderRadius: 26,
   },
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   center: { alignItems: "center", gap: 10, padding: 20 },
   pointerHalo: {
-    backgroundColor: "#24324E",
+    backgroundColor: "#24282E",
     padding: 16,
     borderRadius: 23,
     marginBottom: 2,

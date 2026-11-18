@@ -54,7 +54,7 @@ A focused dark interface, large touch targets, a dedicated pairing sheet, and ke
 
 ## Privacy by design
 
-No backend, analytics, or account flow is implemented. Bluetooth input goes to the paired computer. Only host and pointer preferences are saved locally. Drafts and command history reset when the app process restarts. [Permissions and privacy →](docs/PRIVACY.md)
+No backend, analytics, or account flow is implemented. Bluetooth input goes to the paired computer. Host and pointer preferences, plus the last successfully connected computer’s Bluetooth address for automatic reconnect, are saved locally. Explicit Disconnect clears the remembered computer. Drafts and command history reset when the app process restarts. [Permissions and privacy →](docs/PRIVACY.md)
 
 ## Run the project
 

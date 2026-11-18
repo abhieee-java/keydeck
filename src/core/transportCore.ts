@@ -20,7 +20,7 @@ export type HidTransport = {
   initialize(): Promise<void>;
   devices(): Promise<Device[]>;
   connect(id: string): Promise<void>;
-  disconnect(): Promise<void>;
+  disconnect(forget?: boolean): Promise<void>;
   discoverable(): Promise<void>;
   key(report: KeyReport): Promise<void>;
   keyboardReport(modifier: number, keys: number[]): Promise<void>;
@@ -39,7 +39,7 @@ export type NativeHid = {
   getConnectionState(): Promise<Connection>;
   getDevices(): Promise<Device[]>;
   connect(id: string): Promise<Connection>;
-  disconnect(): Promise<Connection>;
+  disconnect(forget: boolean): Promise<Connection>;
   makeDiscoverable(): Promise<void>;
   release(): Promise<void>;
   suspendSession(): Promise<void>;
@@ -70,11 +70,11 @@ export function createTransportCore(
   log: (message: string) => void,
   nativeHid: NativeHid | null,
   requestPermissions: () => Promise<void>,
+  hasPermissions: () => Promise<boolean> = async () => true,
 ): HidTransport {
   let listener: (s: Connection) => void = () => {};
   let connected = false;
   let paused = false;
-  let initialized = false;
   let revision = -1;
   let current: Connection = { status: "idle" };
   let initializing: Promise<void> | undefined;
@@ -143,7 +143,6 @@ export function createTransportCore(
   const api: HidTransport = {
     async initialize() {
       if (preview) {
-        initialized = true;
         if (current.status !== "connected") accept({ status: "ready" });
         return;
       }
@@ -155,7 +154,6 @@ export function createTransportCore(
         initializing = (async () => {
           await requestPermissions();
           listen();
-          initialized = true;
           accept(await nativeHid.initialize());
         })()
           .catch((error) => {
@@ -204,12 +202,12 @@ export function createTransportCore(
         }
       }
     },
-    async disconnect() {
+    async disconnect(forget = true) {
       generation++;
       pointer.cancel();
       await pointer.settled();
       paused = false;
-      if (!preview && nativeHid) accept(await nativeHid.disconnect());
+      if (!preview && nativeHid) accept(await nativeHid.disconnect(forget));
       else accept({ status: "ready" });
     },
     key(report) {
@@ -287,8 +285,10 @@ export function createTransportCore(
         return;
       }
       if (!nativeHid) return;
-      if (initialized) await api.initialize();
-      else accept(await nativeHid.getConnectionState());
+      // A new native module has no HID proxy until initialize opens the service.
+      // Do not show permission dialogs automatically on first launch or denial.
+      if (await hasPermissions()) await api.initialize();
+      else accept({ status: "idle" });
     },
     subscribe(fn) {
       cancelled = false;

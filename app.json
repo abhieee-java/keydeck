@@ -2,7 +2,7 @@
   "expo": {
     "name": "Keydeck",
     "slug": "keydeck",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -11,7 +11,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#14181F",
+        "backgroundColor": "#101112",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
@@ -23,7 +23,7 @@
         "BLUETOOTH_SCAN",
         "VIBRATE"
       ],
-      "versionCode": 4,
+      "versionCode": 5,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -48,6 +48,7 @@
     "scheme": "keydeck",
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "backgroundColor": "#050607"
   }
 }

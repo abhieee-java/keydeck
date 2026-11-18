@@ -172,3 +172,54 @@ test("keyboardReport transmits held keys when connected and rejects when disconn
   await h.transport.keyboardReport(2, [26, 7]);
   assert.equal(h.counts().sent, 1);
 });
+
+test("fresh foreground launch initializes HID instead of reading an unopened proxy", async () => {
+  const h = harness();
+  let started = 0;
+  h.native.getConnectionState = async () => ({ status: "idle", revision: 0 });
+  h.native.initialize = async () => {
+    started++;
+    return active;
+  };
+  await h.transport.resume();
+  assert.equal(started, 1);
+  assert.equal(h.events.at(-1)?.status, "connected");
+  await h.transport.text("ready");
+});
+
+test("automatic startup does not prompt for missing permissions", async () => {
+  const h = harness();
+  let prompts = 0,
+    starts = 0;
+  h.native.initialize = async () => {
+    starts++;
+    return active;
+  };
+  const t = createTransportCore(
+    false,
+    () => {},
+    h.native,
+    async () => {
+      prompts++;
+    },
+    async () => false,
+  );
+  await t.resume();
+  assert.equal(prompts, 0);
+  assert.equal(starts, 0);
+  await t.initialize();
+  assert.equal(prompts, 1);
+  assert.equal(starts, 1);
+});
+
+test("explicit disconnect forgets the host while a timeout keeps reconnect history", async () => {
+  const h = harness();
+  const flags: boolean[] = [];
+  h.native.disconnect = async (forget) => {
+    flags.push(forget);
+    return { status: "ready", revision: 10 };
+  };
+  await h.transport.disconnect();
+  await h.transport.disconnect(false);
+  assert.deepEqual(flags, [true, false]);
+});

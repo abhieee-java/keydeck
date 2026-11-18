@@ -20,7 +20,7 @@ Release assets include `SHA256SUMS.txt` for integrity checking and `SIGNING-CERT
 5. Return to Keydeck. Refresh the list, select the paired computer, and tap **Connect**.
 6. Focus the app you want to control on your computer. Keep Keydeck in the foreground.
 
-Initial pairing is not hands-free: you need access to the computer's Bluetooth settings. After pairing, reconnect from Keydeck when supported by the host.
+Initial pairing is not hands-free: you need access to the computer's Bluetooth settings. After one successful connection, Keydeck opens the HID service automatically when Nearby devices permission is already granted. It recognizes an active HID connection or attempts to reconnect the last successful computer. Explicit Disconnect clears that remembered host; use Connect to choose it again. Android may drop background HID sessions, so keep Keydeck visible while controlling the computer.
 
 ## Use the controls
 

@@ -1,8 +1,8 @@
 export const theme = {
-  bg: "#0B0D12",
-  panel: "#151820",
-  raised: "#20252F",
-  border: "#303642",
+  bg: "#050607",
+  panel: "#101112",
+  raised: "#1B1D1F",
+  border: "#303234",
   text: "#F5F7FB",
   muted: "#A5AFBF",
   accent: "#C4D0FF",

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 — rich black and automatic connection recovery
+
+- Rich-black surfaces throughout the touchpad, keyboard, and gamepad.
+- Automatically initialize Bluetooth on launch/foreground when Nearby devices permission is already granted.
+- Recover an active HID connection without tapping Connect.
+- Remember the last successful host for reconnect after app restart; explicit Disconnect clears it.
+- Include the refined UI, accessible gamepad controls, and native HID updates.
+- Preserve signing identity and increase Android versionCode to 5.
+
 ## 0.1.1 — Bluetooth connection recovery
 
 - Preserve connected state when Android registration callbacks arrive late.

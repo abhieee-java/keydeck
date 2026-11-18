@@ -217,8 +217,8 @@ function ControlScreen() {
           isFullscreen && {
             minHeight: 400,
             padding: 14,
-            backgroundColor: "#0D131D",
-            borderColor: "#2B3C56",
+            backgroundColor: "#08090A",
+            borderColor: "#303438",
           },
         ]}
       >
@@ -849,8 +849,8 @@ const styles = StyleSheet.create({
     width: 234,
     padding: 26,
     borderRightWidth: 1,
-    borderColor: "#202630",
-    backgroundColor: "#0E1117",
+    borderColor: "#26282B",
+    backgroundColor: "#08090A",
     gap: 16,
   },
   brand: { flexDirection: "row", gap: 10, alignItems: "center" },
@@ -858,7 +858,7 @@ const styles = StyleSheet.create({
     height: 39,
     width: 39,
     borderRadius: 13,
-    backgroundColor: "#222F4B",
+    backgroundColor: "#23272E",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -878,7 +878,7 @@ const styles = StyleSheet.create({
   nav: { alignItems: "center", gap: 12, borderRadius: 16, minHeight: 54 },
   navDesktop: { flexDirection: "row", padding: 16 },
   navMobile: { flex: 1, paddingVertical: 10, gap: 6 },
-  navActive: { backgroundColor: "#1E2A42" },
+  navActive: { backgroundColor: "#24282F" },
   navText: { color: t.muted, fontSize: 14, fontWeight: "500" },
   sidebarArt: {
     backgroundColor: t.panel,
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderColor: "#202630",
+    borderColor: "#26282B",
   },
   modePill: {
     flexDirection: "row",
@@ -1000,8 +1000,8 @@ const styles = StyleSheet.create({
     padding: 22,
     borderRadius: 19,
     borderWidth: 1,
-    borderColor: "#2A374D",
-    backgroundColor: "#0B111B",
+    borderColor: "#303438",
+    backgroundColor: "#08090A",
   },
   terminalHeading: {
     color: t.accent,
@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#11161F",
+    backgroundColor: "#111315",
     borderTopWidth: 1,
     borderColor: t.border,
     gap: 5,

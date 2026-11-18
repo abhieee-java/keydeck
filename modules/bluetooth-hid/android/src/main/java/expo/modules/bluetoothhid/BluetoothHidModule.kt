@@ -42,11 +42,30 @@ class BluetoothHidModule : Module() {
     return event
   }
 
+  private fun savedHost() = appContext.reactContext?.getSharedPreferences("keydeck.connection", Context.MODE_PRIVATE)
+  private fun remember(device: BluetoothDevice) {
+    val prefs = savedHost() ?: return
+    if (prefs.getString("lastHost", null) != device.address || !prefs.getBoolean("autoReconnect", true))
+      prefs.edit().putString("lastHost", device.address).putBoolean("autoReconnect", true).apply()
+  }
+  private fun forgetHost() { savedHost()?.edit()?.remove("lastHost")?.putBoolean("autoReconnect", false)?.apply() }
+  @Synchronized private fun restoreConnection() {
+    if (!registered || host != null || connectingDevice != null || savedHost()?.getBoolean("autoReconnect", true) == false) return
+    val device = reconnectDevice ?: return
+    if (device.bondState != BluetoothDevice.BOND_BONDED) {
+      reconnectDevice = null
+      forgetHost()
+      return
+    }
+    if (hid?.connect(device) == true) connectingDevice = device
+  }
+
   @Synchronized private fun reconcile(): Map<String, Any> {
     val actual = hid?.connectedDevices?.firstOrNull()
     if (actual != null) {
       host = actual
       reconnectDevice = actual
+      remember(actual)
       connectingDevice = null
     } else if (host != null) {
       val isConnected = runCatching { hid?.getConnectionState(host) == BluetoothProfile.STATE_CONNECTED }.getOrDefault(false)
@@ -73,8 +92,11 @@ class BluetoothHidModule : Module() {
         if (actual != null) {
           host = actual
           reconnectDevice = actual
+          remember(actual)
           connectingDevice = null
         }
+        if (reconnectDevice == null && savedHost()?.getBoolean("autoReconnect", true) != false) reconnectDevice = pluggedDevice
+        restoreConnection()
         state(if (host != null) "connected" else if (connectingDevice != null) "connecting" else "ready", host ?: connectingDevice)
       }
     }
@@ -85,6 +107,7 @@ class BluetoothHidModule : Module() {
           connectingDevice = null
           host = device
           reconnectDevice = device
+          remember(device)
           state("connected", device)
         }
         BluetoothProfile.STATE_CONNECTING -> {
@@ -145,6 +168,7 @@ class BluetoothHidModule : Module() {
         host = null
         connectingDevice = null
         reconnectDevice = null
+        forgetHost()
         state("ready")
       }
     }
@@ -212,8 +236,8 @@ class BluetoothHidModule : Module() {
     }
   }
 
-  @Synchronized private fun disconnect() {
-    reconnectDevice = null
+  @Synchronized private fun disconnect(forget: Boolean = true) {
+    if (forget) { reconnectDevice = null; forgetHost() }
     generation++
     releaseReports()
     (host ?: connectingDevice)?.let { hid?.disconnect(it) }
@@ -222,7 +246,7 @@ class BluetoothHidModule : Module() {
   }
 
   private fun suspendSession() {
-    disconnect()
+    disconnect(false)
     registered = false
     pending = false
     hid?.unregisterApp()
@@ -239,6 +263,10 @@ class BluetoothHidModule : Module() {
       adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
       check(adapter?.isEnabled == true) { "Turn on Bluetooth in Android Settings, then retry." }
       synchronized(this@BluetoothHidModule) {
+        if (reconnectDevice == null) {
+          val address = savedHost()?.getString("lastHost", null)
+          reconnectDevice = adapter?.bondedDevices?.find { it.address == address }
+        }
         if (!registered && !pending) {
           pending = true
           registrationError = null
@@ -255,7 +283,11 @@ class BluetoothHidModule : Module() {
         pending = false
         throw IllegalStateException(registrationError ?: "Bluetooth setup timed out. Turn Bluetooth off and on, then retry.")
       }
-      reconcile()
+      synchronized(this@BluetoothHidModule) {
+        reconcile()
+        restoreConnection()
+        snapshot()
+      }
     }
 
     AsyncFunction("getConnectionState") { reconcile() }
@@ -298,8 +330,8 @@ class BluetoothHidModule : Module() {
       }
     }
 
-    AsyncFunction("disconnect") {
-      disconnect()
+    AsyncFunction("disconnect") { forget: Boolean ->
+      disconnect(forget)
       snapshot()
     }
 
@@ -361,7 +393,7 @@ class BluetoothHidModule : Module() {
     }
 
     OnDestroy {
-      runCatching { disconnect() }
+      runCatching { disconnect(false) }
       runCatching { hid?.unregisterApp() }
       hid?.let { adapter?.closeProfileProxy(BluetoothProfile.HID_DEVICE, it) }
       executor.shutdown()

@@ -143,7 +143,7 @@ function useController() {
       setError(
         "Connection timed out. Check Bluetooth on the computer and try again.",
       );
-      void transport.disconnect().catch(() => {});
+      void transport.disconnect(false).catch(() => {});
     }, 15000);
     return () => clearTimeout(timer);
   }, [connection.status, transport]);
