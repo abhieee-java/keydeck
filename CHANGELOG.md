@@ -2,6 +2,8 @@
 
 ## 0.1.2 — rich black and automatic connection recovery
 
+[Signed APK and release notes](https://github.com/abhieee-java/keydeck/releases/tag/v0.1.2)
+
 - Rich-black surfaces throughout the touchpad, keyboard, and gamepad.
 - Automatically initialize Bluetooth on launch/foreground when Nearby devices permission is already granted.
 - Recover an active HID connection without tapping Connect.
